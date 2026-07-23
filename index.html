@@ -1,0 +1,2271 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>AI Coach</title>
+<meta name="theme-color" content="#14171A" />
+<style>
+  html, body { margin: 0; padding: 0; background: #14171A; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+</head>
+<body>
+<div id="root"><div id="loading" style="color:#8D949B;font-family:sans-serif;padding:24px;">Завантаження…<div id="hint" style="color:#FF6B57;margin-top:8px;"></div></div></div>
+<script>
+  setTimeout(function () {
+    var hint = document.getElementById("hint");
+    var loading = document.getElementById("loading");
+    if (hint && loading) {
+      var missing = [];
+      if (typeof React === "undefined") missing.push("React");
+      if (typeof ReactDOM === "undefined") missing.push("ReactDOM");
+      if (typeof Babel === "undefined") missing.push("Babel");
+      if (missing.length) {
+        hint.textContent = "Не вдалось завантажити: " + missing.join(", ") + ". Можливо, CDN заблоковано мережею.";
+      }
+    }
+  }, 4000);
+</script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback } = React;
+
+/* ---- self-contained icon set (replaces lucide-react for standalone hosting) ---- */
+
+function Icon({ size = 20, color = "currentColor", className, style, children }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      {children}
+    </svg>
+  );
+}
+
+function Dumbbell(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 9v6M2 10v4" />
+      <path d="M20 9v6M22 10v4" />
+      <rect x="6" y="7" width="3" height="10" rx="1" />
+      <rect x="15" y="7" width="3" height="10" rx="1" />
+      <path d="M9 12h6" />
+    </Icon>
+  );
+}
+
+function Clock(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </Icon>
+  );
+}
+
+function Users(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M15.5 14.2c2.5.4 4.5 2.6 4.5 5.8" />
+    </Icon>
+  );
+}
+
+function Wrench(props) {
+  return (
+    <Icon {...props}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z" />
+    </Icon>
+  );
+}
+
+function Gauge(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 15a8 8 0 0 1 16 0" />
+      <path d="M12 15l4-5" />
+      <circle cx="12" cy="15" r="1" />
+    </Icon>
+  );
+}
+
+function RefreshCw(props) {
+  return (
+    <Icon {...props}>
+      <path d="M20 11A8 8 0 0 0 6 6.3L4 8" />
+      <path d="M4 4v4h4" />
+      <path d="M4 13a8 8 0 0 0 14 4.7l2-1.7" />
+      <path d="M20 20v-4h-4" />
+    </Icon>
+  );
+}
+
+function Target(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4.5" />
+      <circle cx="12" cy="12" r="1" fill={props.color || "currentColor"} />
+    </Icon>
+  );
+}
+
+function CalendarDays(props) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17" />
+      <path d="M8 3v3M16 3v3" />
+      <path d="M8 13.5h.01M12 13.5h.01M16 13.5h.01M8 17h.01M12 17h.01" />
+    </Icon>
+  );
+}
+
+function LibraryIcon(props) {
+  return (
+    <Icon {...props}>
+      <rect x="4" y="4" width="4" height="16" rx="1" />
+      <rect x="10" y="6" width="4" height="14" rx="1" />
+      <path d="M17 5.5 20.5 20 16.7 6.5z" />
+    </Icon>
+  );
+}
+
+function ChevronRight(props) {
+  return (
+    <Icon {...props}>
+      <path d="M9 5l7 7-7 7" />
+    </Icon>
+  );
+}
+
+function ChevronLeft(props) {
+  return (
+    <Icon {...props}>
+      <path d="M15 5l-7 7 7 7" />
+    </Icon>
+  );
+}
+
+function X(props) {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </Icon>
+  );
+}
+
+function Search(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </Icon>
+  );
+}
+
+function Loader2(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3a9 9 0 1 0 9 9" />
+    </Icon>
+  );
+}
+
+function Save(props) {
+  return (
+    <Icon {...props}>
+      <path d="M5 4h11l3 3v13H5z" />
+      <path d="M8 4v5h7V4" />
+      <path d="M8 14h8v6H8z" />
+    </Icon>
+  );
+}
+
+function Plus(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </Icon>
+  );
+}
+
+function Check(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 12l5 5L20 6" />
+    </Icon>
+  );
+}
+
+function HomeIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M4 11l8-7 8 7" />
+      <path d="M6 10v9h12v-9" />
+    </Icon>
+  );
+}
+
+function Trash2(props) {
+  return (
+    <Icon {...props}>
+      <path d="M5 7h14" />
+      <path d="M9 7V4h6v3" />
+      <path d="M7 7l1 13h8l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </Icon>
+  );
+}
+
+function AlertCircle(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5" />
+      <path d="M12 16.2h.01" />
+    </Icon>
+  );
+}
+
+function Move(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v18M3 12h18" />
+      <path d="M8 7l4-4 4 4" />
+      <path d="M8 17l4 4 4-4" />
+      <path d="M7 8l-4 4 4 4" />
+      <path d="M17 8l4 4-4 4" />
+    </Icon>
+  );
+}
+
+function Flame(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3c1 3-3 4-3 7.5a3.5 3.5 0 0 0 7 0c0-1.2-.5-2-1-2.7 1.5.6 3 2.4 3 5a6 6 0 1 1-12 0c0-4 2-6 3-6.8-.5 1.4 0 2.5.8 3.3C10 8 11 5.5 12 3z" />
+    </Icon>
+  );
+}
+
+function Layers(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3l9 5-9 5-9-5z" />
+      <path d="M3 13l9 5 9-5" />
+      <path d="M3 17l9 5 9-5" />
+    </Icon>
+  );
+}
+
+function Zap(props) {
+  return (
+    <Icon {...props}>
+      <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
+    </Icon>
+  );
+}
+
+function Shuffle(props) {
+  return (
+    <Icon {...props}>
+      <path d="M3 6h3.5c2 0 3 1 4.5 3" />
+      <path d="M3 18h3.5c2 0 3-1 4.5-3" />
+      <path d="M14 6h3.5c2 0 2.5.5 3.5 2" />
+      <path d="M14 18h3.5c2 0 2.5-.5 3.5-2" />
+      <path d="M18 3l3 3-3 3" />
+      <path d="M18 15l3 3-3 3" />
+    </Icon>
+  );
+}
+
+function LinkIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M9 15l6-6" />
+      <path d="M13 6l1.5-1.5a3.5 3.5 0 0 1 5 5L18 11" />
+      <path d="M11 18l-1.5 1.5a3.5 3.5 0 0 1-5-5L6 13" />
+    </Icon>
+  );
+}
+
+function Wind(props) {
+  return (
+    <Icon {...props}>
+      <path d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5" />
+      <path d="M3 12.5h15a2.5 2.5 0 1 1-2.5 2.5" />
+      <path d="M3 17h8a2 2 0 1 1-2 2" />
+    </Icon>
+  );
+}
+
+
+/* ---------------------------------- data ---------------------------------- */
+
+const THEMES = ["Ноги", "Верх", "Прес", "HIIT", "Функціональне", "TRX", "Pilates", "Full Body"];
+const EQUIPMENT_OPTIONS = ["Без інвентаря", "Гантелі", "Степ", "Фітбол", "TRX", "Резинки", "Гиря", "Штанга", "Лавка", "Скакалка", "Медбол", "BOSU", "Плайо-бокс", "Слайдери", "Колесо для преса", "Драбинка"];
+const LEVELS = ["Початковий", "Середній", "Просунутий", "Змішаний"];
+const DURATIONS = [30, 45, 50, 55];
+const BLOCK_TYPES = ["Силовий", "Кардіо", "TRX", "Прес", "Сідниці", "Ноги", "Верх"];
+
+const FINISHER_FORMATS = [
+  { key: "EMOM", label: "EMOM", desc: "Щохвилини — нова вправа" },
+  { key: "AMRAP", label: "AMRAP", desc: "Максимум кіл за час" },
+  { key: "Tabata", label: "Табата", desc: "20/10 сек × 8 раундів" },
+  { key: "ForTime", label: "For Time", desc: "Фіксований обсяг на час" },
+  { key: "Ladder", label: "Драбинка", desc: "Зростаючі/спадні повторення" },
+];
+const FINISHER_DURATIONS = [4, 6, 8, 10, 12];
+
+const EXERCISE_LIBRARY = [
+  // Ноги
+  { id: "l1", name: "Присідання з гантелями", group: "Ноги", eq: ["Гантелі"] },
+  { id: "l2", name: "Випади вперед", group: "Ноги", eq: ["Без інвентаря", "Гантелі"] },
+  { id: "l3", name: "Болгарські випади", group: "Ноги", eq: ["Лавка", "Гантелі"] },
+  { id: "l4", name: "Присід сумо з гирею", group: "Ноги", eq: ["Гиря"] },
+  { id: "l5", name: "Степ-ап на степ", group: "Ноги", eq: ["Степ"] },
+  { id: "l6", name: "Присід зі стрибком", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l7", name: "Присід плие", group: "Ноги", eq: ["Гантелі", "Без інвентаря"] },
+  { id: "l8", name: "Задні випади з платформи", group: "Ноги", eq: ["Степ"] },
+  { id: "l9", name: "Пістолетик з опорою", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l10", name: "Козацький присід", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l11", name: "Фронтальний присід з гирею", group: "Ноги", eq: ["Гиря"] },
+  { id: "l12", name: "Румунська тяга з гантелями", group: "Ноги", eq: ["Гантелі"] },
+  { id: "l13", name: "Стрибки в довжину", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l14", name: "Присід з паузою внизу", group: "Ноги", eq: ["Без інвентаря", "Гантелі"] },
+  { id: "l15", name: "Ходьба випадами з гантелями", group: "Ноги", eq: ["Гантелі"] },
+  { id: "l16", name: "Присід на одній нозі з опорою", group: "Ноги", eq: ["Лавка"] },
+  { id: "l17", name: "Сісі-присід (sissy squat)", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l18", name: "Кубковий присід з пульсацією", group: "Ноги", eq: ["Гантелі"] },
+  { id: "l19", name: "Бокові випади", group: "Ноги", eq: ["Без інвентаря", "Гантелі"] },
+  { id: "l20", name: "Реверанс-випад (curtsy lunge)", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l21", name: "Стінка (wall sit)", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l22", name: "Присід на BOSU", group: "Ноги", eq: ["BOSU"] },
+  { id: "l23", name: "Зіскок з платформи (box step-down)", group: "Ноги", eq: ["Плайо-бокс"] },
+  { id: "l24", name: "Стрибки на плайо-бокс", group: "Ноги", eq: ["Плайо-бокс"] },
+  { id: "l25", name: "Слайд-випад в сторону", group: "Ноги", eq: ["Слайдери"] },
+  { id: "l26", name: "Пружинисті випади", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l27", name: "Присід на одній нозі з лавки", group: "Ноги", eq: ["Лавка"] },
+  { id: "l28", name: "Ковзний випад назад", group: "Ноги", eq: ["Слайдери"] },
+  { id: "l29", name: "Присід з резинкою над коліньми", group: "Ноги", eq: ["Резинки"] },
+  { id: "l30", name: "Стрибок на плайо-бокс і назад", group: "Ноги", eq: ["Плайо-бокс"] },
+  { id: "l31", name: "Ходьба в глибокому присіді", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l32", name: "Присід з гирею на грудях і паузою", group: "Ноги", eq: ["Гиря"] },
+  // Сідниці
+  { id: "g14", name: "Супермен (розгинання спини)", group: "Сідниці", eq: ["Без інвентаря"] },
+  { id: "g15", name: "Марш у мості (glute bridge march)", group: "Сідниці", eq: ["Без інвентаря"] },
+  { id: "g16", name: "Ходьба з резинкою в присіді", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g17", name: "Асиметричний хіп-траст (B-stance)", group: "Сідниці", eq: ["Гантелі"] },
+  { id: "g18", name: "Жаба (frog pump)", group: "Сідниці", eq: ["Без інвентаря"] },
+  { id: "g19", name: "Міст на одній нозі", group: "Сідниці", eq: ["Без інвентаря"] },
+  { id: "g20", name: "Кік-бек з резинкою стоячи", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g1", name: "Хіп-траст зі штангою", group: "Сідниці", eq: ["Штанга"] },
+  { id: "g2", name: "Сідничний міст на лавці", group: "Сідниці", eq: ["Лавка"] },
+  { id: "g3", name: "Абдукція з резинкою", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g4", name: "Кік-бек на TRX", group: "Сідниці", eq: ["TRX"] },
+  { id: "g5", name: "Розгинання стегна на фітболі", group: "Сідниці", eq: ["Фітбол"] },
+  { id: "g6", name: "Донкі-кік з обтяженням", group: "Сідниці", eq: ["Резинки", "Без інвентаря"] },
+  { id: "g7", name: "Fire hydrant (\"годинник\")", group: "Сідниці", eq: ["Без інвентаря"] },
+  { id: "g8", name: "Румунська тяга на одній нозі", group: "Сідниці", eq: ["Гантелі"] },
+  { id: "g9", name: "Кубковий присід з гирею", group: "Сідниці", eq: ["Гиря"] },
+  { id: "g10", name: "Хіп-траст на одній нозі", group: "Сідниці", eq: ["Без інвентаря", "Лавка"] },
+  { id: "g11", name: "Штовхання тазом з резинкою", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g12", name: "Зашагування з гантелями", group: "Сідниці", eq: ["Гантелі", "Степ"] },
+  { id: "g13", name: "Огидний кік з резинкою", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g21", name: "Слайд-керлінг гомілки лежачи", group: "Сідниці", eq: ["Слайдери"] },
+  { id: "g22", name: "Розгин стегна назад з резинкою стоячи", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g23", name: "Хіп-траст з паузою нагорі", group: "Сідниці", eq: ["Штанга"] },
+  { id: "g24", name: "Бокові кроки з резинкою (монстр-хода)", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g25", name: "Одноногий міст на BOSU", group: "Сідниці", eq: ["BOSU"] },
+  { id: "g26", name: "Пульсуючий сумо-присід з гантеллю", group: "Сідниці", eq: ["Гантелі"] },
+  { id: "g27", name: "Розгинання стегна в упорі на лавці", group: "Сідниці", eq: ["Лавка"] },
+  { id: "g28", name: "Кік-бек на слайдері", group: "Сідниці", eq: ["Слайдери"] },
+  // Верх
+  { id: "u16", name: "Планка з переходом у віджимання", group: "Верх", eq: ["Без інвентаря"] },
+  { id: "u17", name: "Жим-поштовх з гантелями", group: "Верх", eq: ["Гантелі"] },
+  { id: "u18", name: "Віджимання з ногами на фітболі", group: "Верх", eq: ["Фітбол"] },
+  { id: "u19", name: "Віджимання з ногами на лавці (decline)", group: "Верх", eq: ["Лавка"] },
+  { id: "u20", name: "Тяга резинки до обличчя (face pull)", group: "Верх", eq: ["Резинки"] },
+  { id: "u21", name: "Зворотні розведення на фітболі", group: "Верх", eq: ["Гантелі", "Фітбол"] },
+  { id: "u22", name: "Жим гантелей на BOSU", group: "Верх", eq: ["Гантелі", "BOSU"] },
+  { id: "u23", name: "Французький жим лежачи", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u1", name: "Жим гантелей лежачи", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u2", name: "Тяга гантелі в нахилі", group: "Верх", eq: ["Гантелі"] },
+  { id: "u3", name: "Розведення гантелей в сторони", group: "Верх", eq: ["Гантелі"] },
+  { id: "u4", name: "Згинання на біцепс", group: "Верх", eq: ["Гантелі"] },
+  { id: "u5", name: "Розгинання на трицепс", group: "Верх", eq: ["Гантелі"] },
+  { id: "u6", name: "Тяга TRX до грудей", group: "Верх", eq: ["TRX"] },
+  { id: "u7", name: "Класичні віджимання", group: "Верх", eq: ["Без інвентаря"] },
+  { id: "u8", name: "Жим гантелей стоячи", group: "Верх", eq: ["Гантелі"] },
+  { id: "u9", name: "Тяга резинки до пояса", group: "Верх", eq: ["Резинки"] },
+  { id: "u10", name: "Пуловер з гантеллю", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u11", name: "Алмазні віджимання", group: "Верх", eq: ["Без інвентаря"] },
+  { id: "u12", name: "Віджимання широким хватом", group: "Верх", eq: ["Без інвентаря"] },
+  { id: "u13", name: "Тяга TRX однією рукою", group: "Верх", eq: ["TRX"] },
+  { id: "u14", name: "Жим Арнольда", group: "Верх", eq: ["Гантелі"] },
+  { id: "u15", name: "Зворотні розведення в нахилі", group: "Верх", eq: ["Гантелі"] },
+  { id: "u24", name: "Ковзне віджимання (слайдери під долонями)", group: "Верх", eq: ["Слайдери"] },
+  { id: "u25", name: "Тяга гантелі з упором на лавку", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u26", name: "Жим гантелей на нахиленій лавці", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u27", name: "Розведення в кросовері з резинками", group: "Верх", eq: ["Резинки"] },
+  { id: "u28", name: "Пайк-віджимання на плечі", group: "Верх", eq: ["Без інвентаря"] },
+  { id: "u29", name: "Т-тяга гантелями в нахилі", group: "Верх", eq: ["Гантелі"] },
+  { id: "u30", name: "Жим вузьким хватом (на трицепс)", group: "Верх", eq: ["Гантелі", "Лавка"] },
+  { id: "u31", name: "Тяга TRX з поворотом корпусу", group: "Верх", eq: ["TRX"] },
+  // Прес
+  { id: "c14", name: "Скручування навхрест", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c15", name: "Дотягування до носків (toe touch)", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c16", name: "Зворотні скручування", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c17", name: "V-складка (V-up)", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c18", name: "Пайк на фітболі", group: "Прес", eq: ["Фітбол"] },
+  { id: "c19", name: "Бокова планка з підйомом стегна", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c20", name: "Ножиці-тріпотіння (flutter kicks)", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c21", name: "Слем медболом у скручуванні", group: "Прес", eq: ["Медбол"] },
+  { id: "c1", name: "Скручування на фітболі", group: "Прес", eq: ["Фітбол"] },
+  { id: "c2", name: "Планка класична", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c3", name: "Планка з дотиком плеча", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c4", name: "Велосипед", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c5", name: "Підйом ніг у висі на TRX", group: "Прес", eq: ["TRX"] },
+  { id: "c6", name: "Дровосек з резинкою", group: "Прес", eq: ["Резинки"] },
+  { id: "c7", name: "Руський твіст з гантеллю", group: "Прес", eq: ["Гантелі"] },
+  { id: "c8", name: "Бокова планка", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c9", name: "Планка з переступанням", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c10", name: "Dead bug (\"жучок\")", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c11", name: "Hollow hold (\"човник\")", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c12", name: "Підйом корпусу на фітболі", group: "Прес", eq: ["Фітбол"] },
+  { id: "c13", name: "Ножиці лежачи", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c22", name: "Ролаут з колесом для преса", group: "Прес", eq: ["Колесо для преса"] },
+  { id: "c23", name: "Складка на слайдерах (pike slide)", group: "Прес", eq: ["Слайдери"] },
+  { id: "c24", name: "Планка з розведенням рук на слайдерах", group: "Прес", eq: ["Слайдери"] },
+  { id: "c25", name: "Дотягування коліна до ліктя в планці", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c26", name: "Скручування з медболом над головою", group: "Прес", eq: ["Медбол"] },
+  { id: "c27", name: "Бічні нахили корпусу з гантеллю", group: "Прес", eq: ["Гантелі"] },
+  { id: "c28", name: "Ножиці-тріпотіння на BOSU", group: "Прес", eq: ["BOSU"] },
+  { id: "c29", name: "Утримання кута (V-sit hold)", group: "Прес", eq: ["Без інвентаря"] },
+  // HIIT / Кардіо
+  { id: "h14", name: "Хвилі канатом (battle rope)", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h15", name: "Стрибки конькобіжця (skaters)", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h16", name: "Бурпі зі стрибком у довжину", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h17", name: "Тук-джамп (tuck jump)", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h18", name: "Стрибки на плайо-бокс у темпі", group: "HIIT", eq: ["Плайо-бокс"] },
+  { id: "h19", name: "Клін і жим з гирею у темпі", group: "HIIT", eq: ["Гиря"] },
+  { id: "h20", name: "Слем медболом у підборі", group: "HIIT", eq: ["Медбол"] },
+  { id: "h21", name: "Спринт на місці 20 сек", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h1", name: "Бурпі", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h2", name: "Стрибки на скакалці", group: "HIIT", eq: ["Скакалка"] },
+  { id: "h3", name: "Джампінг джек", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h4", name: "Маунтін клаймбер", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h5", name: "Високе піднімання колін", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h6", name: "Стрибки на степ", group: "HIIT", eq: ["Степ"] },
+  { id: "h7", name: "Бокс-удари в парах", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h8", name: "Бій з тінню", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h9", name: "Присід зі стрибком (squat jump)", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h10", name: "Альпініст навхрест", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h11", name: "Подвійні стрибки на скакалці", group: "HIIT", eq: ["Скакалка"] },
+  { id: "h12", name: "Свінг з гирею в темпі", group: "HIIT", eq: ["Гиря"] },
+  { id: "h13", name: "Прискорення на місці", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h22", name: "Спринт по драбинці спритності", group: "HIIT", eq: ["Драбинка"] },
+  { id: "h23", name: "Стрибки в сторони через лінію", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h24", name: "Свінг з гирею над головою (american swing)", group: "HIIT", eq: ["Гиря"] },
+  { id: "h25", name: "Плайометричні віджимання", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h26", name: "Скіпінг з високим підйомом стегна", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h27", name: "Ковзання в сторони на слайдерах", group: "HIIT", eq: ["Слайдери"] },
+  { id: "h28", name: "Комбо: бурпі + стрибок на бокс", group: "HIIT", eq: ["Плайо-бокс"] },
+  { id: "h29", name: "Реакційні старти з місця", group: "HIIT", eq: ["Без інвентаря"] },
+  // Функціональне / Full Body
+  { id: "f12", name: "Тяга саней (імітація кроком)", group: "Функціональне", eq: ["Без інвентаря"] },
+  { id: "f13", name: "Кидок медбола в стіну", group: "Функціональне", eq: ["Медбол"] },
+  { id: "f14", name: "Перетягування ведмежа з BOSU", group: "Функціональне", eq: ["BOSU"] },
+  { id: "f15", name: "Диск-тяга по підлозі (drag)", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f16", name: "Комбо: присід + жим + випад", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f17", name: "Підйом на плайо-бокс з гирею", group: "Функціональне", eq: ["Плайо-бокс", "Гиря"] },
+  { id: "f18", name: "Обертання медболом навколо тіла", group: "Функціональне", eq: ["Медбол"] },
+  { id: "f1", name: "Клін і жим з гирею", group: "Функціональне", eq: ["Гиря"] },
+  { id: "f2", name: "Свінг з гирею", group: "Функціональне", eq: ["Гиря"] },
+  { id: "f3", name: "Турецький підйом", group: "Функціональне", eq: ["Гиря"] },
+  { id: "f4", name: "Слем медболом", group: "Функціональне", eq: ["Без інвентаря"] },
+  { id: "f5", name: "Фермерська прогулянка", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f6", name: "Трастер з гантелями", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f7", name: "Renegade row (тяга в упорі)", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f8", name: "Ведмежа хода (bear crawl)", group: "Функціональне", eq: ["Без інвентаря"] },
+  { id: "f9", name: "Крабова хода (crab walk)", group: "Функціональне", eq: ["Без інвентаря"] },
+  { id: "f10", name: "Перенесення гирі над головою", group: "Функціональне", eq: ["Гиря"] },
+  { id: "f11", name: "Комплекс присід-жим з гантелями", group: "Функціональне", eq: ["Гантелі"] },
+  { id: "f19", name: "Імітація перетягування каната", group: "Функціональне", eq: ["Без інвентаря"] },
+  { id: "f20", name: "Штовхання платформи на слайдерах", group: "Функціональне", eq: ["Слайдери"] },
+  { id: "f21", name: "Присід з жимом гирі над головою", group: "Функціональне", eq: ["Гиря"] },
+  { id: "f22", name: "Фермерська хода зі сходинками", group: "Функціональне", eq: ["Гантелі", "Степ"] },
+  { id: "f23", name: "Кидок медбола через плече", group: "Функціональне", eq: ["Медбол"] },
+  { id: "f24", name: "Комбо TRX присід + тяга", group: "Функціональне", eq: ["TRX"] },
+  { id: "f25", name: "Штовхання диска по підлозі (слайдери)", group: "Функціональне", eq: ["Слайдери"] },
+  { id: "f26", name: "Комплекс з гирею: свінг-кліна-присід", group: "Функціональне", eq: ["Гиря"] },
+  // TRX
+  { id: "t10", name: "TRX скручування корпусу", group: "TRX", eq: ["TRX"] },
+  { id: "t11", name: "TRX жим від грудей", group: "TRX", eq: ["TRX"] },
+  { id: "t12", name: "TRX пайк (складка в упорі)", group: "TRX", eq: ["TRX"] },
+  { id: "t13", name: "TRX згинання гомілки лежачи", group: "TRX", eq: ["TRX"] },
+  { id: "t14", name: "TRX біцепс-тяга", group: "TRX", eq: ["TRX"] },
+  { id: "t15", name: "TRX альпініст", group: "TRX", eq: ["TRX"] },
+  { id: "t16", name: "TRX присід зі стрибком", group: "TRX", eq: ["TRX"] },
+  { id: "t1", name: "TRX присід", group: "TRX", eq: ["TRX"] },
+  { id: "t2", name: "TRX випад", group: "TRX", eq: ["TRX"] },
+  { id: "t3", name: "TRX веслування", group: "TRX", eq: ["TRX"] },
+  { id: "t4", name: "TRX Y-розведення", group: "TRX", eq: ["TRX"] },
+  { id: "t5", name: "TRX атлетична тяга", group: "TRX", eq: ["TRX"] },
+  { id: "t6", name: "TRX жим від плечей", group: "TRX", eq: ["TRX"] },
+  { id: "t7", name: "TRX бокова планка", group: "TRX", eq: ["TRX"] },
+  { id: "t8", name: "TRX присід на одній нозі", group: "TRX", eq: ["TRX"] },
+  { id: "t9", name: "TRX розгинання трицепса", group: "TRX", eq: ["TRX"] },
+  { id: "t17", name: "TRX розведення в стороні (Y-fly)", group: "TRX", eq: ["TRX"] },
+  { id: "t18", name: "TRX присід на одній нозі з підтримкою", group: "TRX", eq: ["TRX"] },
+  { id: "t19", name: "TRX зворотні випади", group: "TRX", eq: ["TRX"] },
+  { id: "t20", name: "TRX pike до групування колін", group: "TRX", eq: ["TRX"] },
+  { id: "t21", name: "TRX тяга широким хватом", group: "TRX", eq: ["TRX"] },
+  { id: "t22", name: "TRX баланс-присід", group: "TRX", eq: ["TRX"] },
+  { id: "t23", name: "TRX жим однією рукою", group: "TRX", eq: ["TRX"] },
+  { id: "t24", name: "TRX розведення на грудні", group: "TRX", eq: ["TRX"] },
+  // Pilates / розтяжка
+  { id: "p10", name: "Розтяжка задньої поверхні стегна", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p11", name: "Лебідь (swan dive)", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p12", name: "Підйом ноги лежачи на боці", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p13", name: "Pilates saw (\"пилка\")", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p14", name: "Скручування хребта сидячи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p15", name: "Плечовий міст з утриманням", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p16", name: "Нахил стоячи вперед", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p17", name: "Розтяжка \"вісімка\" (figure-4)", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p1", name: "Кішка-корова", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p2", name: "Розтяжка сідничного м'яза лежачи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p3", name: "Pilates hundred", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p4", name: "Розтяжка квадрицепса стоячи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p5", name: "Поза дитини", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p6", name: "Pilates roll-up", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p7", name: "Місток на лопатках", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p8", name: "Розтяжка грушоподібного м'яза", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p9", name: "Поза кобри", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p18", name: "Пілатес \"плавання\"", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p19", name: "Поза голуба", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p20", name: "Розтяжка литкового м'яза стоячи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p21", name: "Пілатес \"ножиці\" лежачи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p22", name: "Розтяжка бічної лінії тіла", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p23", name: "Кобра з розворотом корпусу", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p24", name: "Розтяжка зап'ясть стоячи", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p25", name: "Глибокий випад-розтяжка (world's greatest stretch)", group: "Pilates", eq: ["Без інвентаря"] },
+];
+
+const MUSCLE_GROUPS = [...new Set(EXERCISE_LIBRARY.map(e => e.group))];
+
+const GROUP_VISUALS = {
+  "Ноги": { icon: Move, color: "#C6F135" },
+  "Сідниці": { icon: Flame, color: "#FF9F5B" },
+  "Верх": { icon: Dumbbell, color: "#4FA8E0" },
+  "Прес": { icon: Layers, color: "#E0C64F" },
+  "HIIT": { icon: Zap, color: "#FF6B57" },
+  "Функціональне": { icon: Shuffle, color: "#7FD1B9" },
+  "TRX": { icon: LinkIcon, color: "#B08CE0" },
+  "Pilates": { icon: Wind, color: "#8FC6F0" },
+};
+function groupVisual(group) {
+  return GROUP_VISUALS[group] || { icon: Dumbbell, color: "#C6F135" };
+}
+
+/* ---- hand-drawn pose illustrations (one per muscle group, no external images) ---- */
+
+const POSE_PATHS = {
+  "Ноги": { // squat
+    head: [20, 6, 3],
+    lines: ["M20,9 L20,20", "M11,15 L20,12 L29,15", "M20,20 L13,27 L11,34", "M20,20 L27,27 L29,34"],
+  },
+  "Сідниці": { // hip thrust
+    head: [8, 30, 3],
+    lines: ["M11,32 L23,18 L30,25 L34,33"],
+  },
+  "Верх": { // push-up
+    head: [7, 13, 3],
+    lines: ["M10,14 L33,20", "M15,16 L15,26", "M33,20 L36,20"],
+  },
+  "Прес": { // v-sit crunch
+    head: [13, 17, 3],
+    lines: ["M16,19 L21,31", "M21,31 L31,22", "M21,31 L11,31"],
+  },
+  "HIIT": { // star jump
+    head: [20, 6, 3],
+    lines: ["M20,9 L20,20", "M20,11 L9,3", "M20,11 L31,3", "M20,20 L9,33", "M20,20 L31,33"],
+  },
+  "Функціональне": { // kettlebell swing
+    head: [13, 8, 3],
+    lines: ["M13,11 L23,20", "M23,20 L23,28", "M23,20 L19,31", "M23,20 L28,31"],
+    dot: [23, 31, 2],
+  },
+  "TRX": { // suspended lean
+    head: [24, 8, 3],
+    lines: ["M28,2 L34,2", "M24,11 L29,3", "M24,11 L16,26", "M16,26 L11,34", "M16,26 L21,34"],
+  },
+  "Pilates": { // seated stretch
+    head: [13, 10, 3],
+    lines: ["M13,13 L19,23", "M19,23 L30,25", "M19,23 L11,26", "M11,26 L34,26"],
+  },
+};
+
+function PoseIllustration({ group, color, size = 44 }) {
+  const pose = POSE_PATHS[group] || POSE_PATHS["Ноги"];
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <circle cx={pose.head[0]} cy={pose.head[1]} r={pose.head[2]} stroke={color} strokeWidth="2" />
+      {pose.lines.map((d, i) => (
+        <path key={i} d={d} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      ))}
+      {pose.dot && <circle cx={pose.dot[0]} cy={pose.dot[1]} r={pose.dot[2]} fill={color} />}
+    </svg>
+  );
+}
+
+/* --------------------------- offline fallback engine -------------------------- */
+/* Used automatically whenever the live AI call fails, so the app always works. */
+
+const THEME_GROUPS = {
+  "Ноги": ["Ноги", "Сідниці"],
+  "Верх": ["Верх"],
+  "Прес": ["Прес"],
+  "HIIT": ["HIIT"],
+  "Функціональне": ["Функціональне", "HIIT"],
+  "TRX": ["TRX"],
+  "Pilates": ["Pilates", "Прес"],
+  "Full Body": ["Ноги", "Верх", "Прес", "Функціональне", "Сідниці"],
+};
+
+const WARMUP_POOL = [
+  { name: "Легкий біг на місці", dur: "60 сек" },
+  { name: "Кругові рухи руками", dur: "40 сек" },
+  { name: "Джампінг джек", dur: "45 сек" },
+  { name: "Розкачування стегон", dur: "40 сек" },
+  { name: "Мах ногами вперед-назад", dur: "40 сек" },
+  { name: "Високе піднімання колін", dur: "45 сек" },
+];
+
+const COOLDOWN_POOL = [
+  { name: "Розтяжка квадрицепса стоячи", dur: "40 сек" },
+  { name: "Поза дитини", dur: "45 сек" },
+  { name: "Розтяжка сідничного м'яза лежачи", dur: "40 сек" },
+  { name: "Кішка-корова", dur: "45 сек" },
+  { name: "Глибоке дихання стоячи", dur: "40 сек" },
+];
+
+function shufflePick(arr, n) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+// Picks n exercises across a priority-ordered list of pools (e.g. [narrow
+// muscle-focus pool, wider theme pool]), preferring distinct movement
+// patterns so two exercises of the same type (e.g. two squats) don't end up
+// in the same block. Only widens to the next pool — and only repeats a
+// pattern — once every pool has been tried without finding something new.
+// avoidFirstPattern additionally keeps the very first pick different from
+// whatever pattern immediately preceded this selection (e.g. the last
+// exercise of the previous block).
+function pickDiverseFromPools(pools, n, avoidFirstPattern = null) {
+  const chosen = [];
+  const usedPatterns = new Set();
+  const usedNames = new Set();
+
+  for (const pool of pools) {
+    if (chosen.length >= n) break;
+    const shuffled = shufflePick(pool, pool.length);
+    for (const ex of shuffled) {
+      if (chosen.length >= n) break;
+      if (usedNames.has(ex.name)) continue;
+      const p = detectPattern(ex.name, ex.group);
+      if (!usedPatterns.has(p)) {
+        chosen.push(ex);
+        usedPatterns.add(p);
+        usedNames.add(ex.name);
+      }
+    }
+  }
+  if (chosen.length < n) {
+    for (const pool of pools) {
+      if (chosen.length >= n) break;
+      for (const ex of pool) {
+        if (chosen.length >= n) break;
+        if (usedNames.has(ex.name)) continue;
+        chosen.push(ex);
+        usedNames.add(ex.name);
+      }
+    }
+  }
+  if (avoidFirstPattern && chosen.length > 1 && detectPattern(chosen[0].name, chosen[0].group) === avoidFirstPattern) {
+    const swapIdx = chosen.findIndex((e, i) => i > 0 && detectPattern(e.name, e.group) !== avoidFirstPattern);
+    if (swapIdx > 0) [chosen[0], chosen[swapIdx]] = [chosen[swapIdx], chosen[0]];
+  }
+  return chosen;
+}
+
+function levelSetsReps(level) {
+  if (level === "Початковий") return { sets: 2, reps: "12-15" };
+  if (level === "Просунутий") return { sets: 4, reps: "10-12" };
+  return { sets: 3, reps: "12-15" };
+}
+
+function equipmentPool(equipment) {
+  return equipment.length ? equipment : ["Без інвентаря"];
+}
+
+function filterLibrary(groups, equipment, exclude = []) {
+  const allowed = equipmentPool(equipment);
+  return EXERCISE_LIBRARY.filter(
+    (ex) => groups.includes(ex.group) && ex.eq.some((e) => allowed.includes(e)) && !exclude.includes(ex.name)
+  );
+}
+
+const PATTERN_LABELS_UK = {
+  squat: "присід", hinge: "тазостегновий нахил", push: "жим", pull: "тяга",
+  core: "кор", plyo: "вибухові", carry: "перенесення", stretch: "розтяжка", full: "комплексні",
+};
+
+// Assigns each block a single coherent focus (one muscle group, or — for
+// single-group themes — one movement pattern within that group) so exercises
+// within a block, and across blocks, follow a logical structure rather than
+// a random mix.
+function getBlockFocuses(theme, count) {
+  const groups = THEME_GROUPS[theme] || ["Full Body"];
+  if (groups.length > 1) {
+    return Array.from({ length: count }, (_, i) => groups[i % groups.length]);
+  }
+  const group = groups[0];
+  const patternsPresent = [...new Set(EXERCISE_LIBRARY.filter((e) => e.group === group).map((e) => detectPattern(e.name, e.group)))];
+  const order = patternsPresent.length ? patternsPresent : ["full"];
+  return Array.from({ length: count }, (_, i) => ({ group, pattern: order[i % order.length] }));
+}
+
+function focusLabel(focus) {
+  return typeof focus === "string" ? focus : `${focus.group} — ${PATTERN_LABELS_UK[focus.pattern] || focus.pattern}`;
+}
+
+function filterLibraryByFocus(focus, equipment, exclude = []) {
+  const allowed = equipmentPool(equipment);
+  if (typeof focus === "string") {
+    return EXERCISE_LIBRARY.filter((e) => e.group === focus && e.eq.some((x) => allowed.includes(x)) && !exclude.includes(e.name));
+  }
+  return EXERCISE_LIBRARY.filter((e) => e.group === focus.group && detectPattern(e.name, e.group) === focus.pattern && e.eq.some((x) => allowed.includes(x)) && !exclude.includes(e.name));
+}
+
+// Parses a block's assigned focus back out of its own name, e.g. "Блок 2: Сідниці"
+// or "Блок 3: TRX — кор", so a replaced exercise can be matched to the same focus.
+function inferBlockFocus(blockName, theme) {
+  if (!blockName) return null;
+  const label = blockName.split(":").slice(1).join(":").trim();
+  if (!label) return null;
+  if (MUSCLE_GROUPS.includes(label)) return label;
+  const [groupPart, patternPart] = label.split("—").map((s) => s && s.trim());
+  if (groupPart && MUSCLE_GROUPS.includes(groupPart) && patternPart) {
+    const patternKey = Object.keys(PATTERN_LABELS_UK).find((k) => PATTERN_LABELS_UK[k] === patternPart);
+    if (patternKey) return { group: groupPart, pattern: patternKey };
+  }
+  const groups = THEME_GROUPS[theme] || [];
+  for (const g of groups) {
+    if (label.includes(g)) return g;
+  }
+  return null;
+}
+
+function toWorkoutExercise(libEx, level) {
+  const { sets, reps } = levelSetsReps(level);
+  return { name: libEx.name, sets, reps, note: libEx.group };
+}
+
+function localWorkout(params) {
+  const c = exerciseCounts(params.duration);
+  const focuses = getBlockFocuses(params.theme, c.blocks);
+  const used = [];
+  const blocks = [];
+  let lastPattern = null;
+  for (let b = 0; b < c.blocks; b++) {
+    const focus = focuses[b];
+    const groupOnly = typeof focus === "string" ? focus : focus.group;
+    const focusPool = filterLibraryByFocus(focus, params.equipment, used);
+    const groupPool = filterLibrary([groupOnly], params.equipment, used);
+    const themePool = filterLibrary(THEME_GROUPS[params.theme] || ["Full Body"], params.equipment, used);
+    const chosen = pickDiverseFromPools([focusPool, groupPool, themePool], c.perBlock, lastPattern);
+    chosen.forEach((e) => used.push(e.name));
+    if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+    blocks.push({
+      name: `Блок ${b + 1}: ${focusLabel(focus)}`,
+      exercises: chosen.map((e) => toWorkoutExercise(e, params.level)),
+    });
+  }
+  return {
+    title: `${params.theme} · ${params.duration} хв`,
+    warmup: shufflePick(WARMUP_POOL, c.warmup),
+    blocks,
+    cooldown: shufflePick(COOLDOWN_POOL, c.cooldown),
+  };
+}
+
+function localReplacement(theme, level, equipment, usedNames, blockFocus = null, avoidPatterns = []) {
+  const focus = blockFocus || (THEME_GROUPS[theme] || ["Full Body"])[0];
+  const groupOnly = typeof focus === "string" ? focus : focus.group;
+  const focusPool = filterLibraryByFocus(focus, equipment, usedNames);
+  const groupPool = filterLibrary([groupOnly], equipment, usedNames);
+  const themePool = filterLibrary(THEME_GROUPS[theme] || ["Full Body"], equipment, usedNames);
+  const tiers = [focusPool, groupPool, themePool];
+
+  for (const pool of tiers) {
+    const preferred = avoidPatterns.length ? pool.filter((e) => !avoidPatterns.includes(detectPattern(e.name, e.group))) : pool;
+    if (preferred.length) {
+      const pick = preferred[Math.floor(Math.random() * preferred.length)];
+      return toWorkoutExercise(pick, level);
+    }
+  }
+  for (const pool of tiers) {
+    if (pool.length) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      return toWorkoutExercise(pick, level);
+    }
+  }
+  return { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+}
+
+function localBlock(blockType, level, equipment, count, usedNames) {
+  const themeKey = THEME_GROUPS[blockType] ? blockType : (BLOCK_TYPES.includes(blockType) ? blockType : "Full Body");
+  const groups = THEME_GROUPS[themeKey] || [blockType];
+  const available = filterLibrary(groups, equipment, usedNames);
+  const chosen = shufflePick(available.length ? available : filterLibrary(groups, equipment), count);
+  return { name: `Блок: ${blockType}`, exercises: chosen.map((e) => toWorkoutExercise(e, level)) };
+}
+
+function localPlanWeek(themesPool, sessionsPerWeek, weekNum) {
+  const days = [];
+  for (let d = 1; d <= sessionsPerWeek; d++) {
+    const theme = themesPool[(d - 1 + weekNum) % themesPool.length];
+    const groups = THEME_GROUPS[theme] || ["Full Body"];
+    const sample = shufflePick(EXERCISE_LIBRARY.filter((e) => groups.includes(e.group)), 3).map((e) => e.name);
+    days.push({ day: d, theme, focus: `Акцент на ${theme.toLowerCase()}`, blocks: sample });
+  }
+  return { days };
+}
+
+function localFinisher(format, duration, theme, equipment, level) {
+  const groups = THEME_GROUPS[theme] || ["Full Body"];
+  const pool = filterLibrary(groups, equipment);
+  const source = pool.length >= 4 ? pool : EXERCISE_LIBRARY.filter((e) => e.eq.some((x) => equipmentPool(equipment).includes(x)));
+  const repsBase = level === "Просунутий" ? 15 : level === "Початковий" ? 10 : 12;
+
+  if (format === "EMOM") {
+    const n = Math.min(duration, Math.max(4, source.length));
+    const chosen = shufflePick(source, Math.min(n, source.length || 1));
+    return {
+      name: `Фінішер: EMOM ${duration} хв`,
+      format: "EMOM",
+      instructions: `Щохвилини — нова вправа, ${repsBase} повторень, залишок хвилини — відпочинок`,
+      exercises: chosen.map((e) => ({ name: e.name, reps: `${repsBase}` })),
+    };
+  }
+  if (format === "AMRAP") {
+    const chosen = shufflePick(source, 4);
+    return {
+      name: `Фінішер: AMRAP ${duration} хв`,
+      format: "AMRAP",
+      instructions: `За ${duration} хв виконати якомога більше повних кіл`,
+      exercises: chosen.map((e) => ({ name: e.name, reps: `${repsBase}` })),
+    };
+  }
+  if (format === "Tabata") {
+    const chosen = shufflePick(source, 2);
+    return {
+      name: "Фінішер: Табата",
+      format: "Tabata",
+      instructions: "20 сек робота / 10 сек відпочинок × 8 раундів, 2 вправи по черзі",
+      exercises: chosen.map((e) => ({ name: e.name, reps: "макс" })),
+    };
+  }
+  if (format === "ForTime") {
+    const chosen = shufflePick(source, 3);
+    const scheme = ["21", "15", "9"];
+    return {
+      name: "Фінішер: For Time",
+      format: "ForTime",
+      instructions: "Виконати всі підходи якнайшвидше, зафіксувати час",
+      exercises: chosen.map((e, i) => ({ name: e.name, reps: scheme[i] || "12" })),
+    };
+  }
+  // Ladder
+  const chosen = shufflePick(source, 3);
+  return {
+    name: "Фінішер: Драбинка",
+    format: "Ladder",
+    instructions: "2-4-6-8-10 повторень, з кожним раундом більше",
+    exercises: chosen.map((e) => ({ name: e.name, reps: "2-4-6-8-10" })),
+  };
+}
+
+/* ---- offline "how to perform" templates, grouped by movement pattern ---- */
+
+const PATTERN_TECHNIQUES = {
+  squat: {
+    steps: [
+      "Ноги на ширині плечей, носки трохи назовні",
+      "Опускайся, відводячи таз назад, коліна йдуть по лінії носків",
+      "Спина рівна, погляд вперед, вага на п'ятах",
+      "Підіймайся, штовхаючись підлогою",
+    ],
+    mistake: "Типова помилка: коліна заходять всередину",
+  },
+  hinge: {
+    steps: [
+      "Ноги на ширині стегон, легкий згин у колінах",
+      "Рух починається зі згинання в кульшовому суглобі, таз назад",
+      "Спина рівна протягом усього руху",
+      "Підіймайся, включаючи сідниці в кінці руху",
+    ],
+    mistake: "Типова помилка: округлення спини",
+  },
+  push: {
+    steps: [
+      "Стабілізуй корпус і лопатки перед рухом",
+      "Опускай/тисни контрольовано, лікті під невеликим кутом до тіла",
+      "Не заводь плечі до вух",
+      "Видих на зусиллі",
+    ],
+    mistake: "Типова помилка: різкий рух без контролю",
+  },
+  pull: {
+    steps: [
+      "Злегка нахили корпус, спина рівна",
+      "Тягни лікоть назад, зводь лопатки",
+      "Контрольовано повертайся у вихідне положення",
+    ],
+    mistake: "Типова помилка: тяга за рахунок рук без лопаток",
+  },
+  core: {
+    steps: [
+      "Втягни живіт, таз у нейтральному положенні",
+      "Рух виконуй повільно, без ривків",
+      "Дихання рівне, не затримуй подих",
+    ],
+    mistake: "Типова помилка: прогин у попереку",
+  },
+  plyo: {
+    steps: [
+      "М'яке приземлення на всю стопу, коліна злегка зігнуті",
+      "Використовуй мах руками для імпульсу",
+      "Контролюй ритм — не жертвуй технікою заради швидкості",
+    ],
+    mistake: "Типова помилка: жорстке приземлення на прямі ноги",
+  },
+  carry: {
+    steps: [
+      "Корпус вертикально, плечі опущені й стабільні",
+      "Крок рівний, без розгойдування тазом",
+      "Хват впевнений, груди відкриті",
+    ],
+    mistake: "Типова помилка: сутулість під навантаженням",
+  },
+  stretch: {
+    steps: [
+      "Заходь у позу повільно, без різких рухів",
+      "Дихай глибоко, з кожним видихом трохи поглиблюй розтяжку",
+      "Тримай позицію, не допускай болю — лише легке натягування",
+    ],
+    mistake: "Типова помилка: затримка дихання",
+  },
+  full: {
+    steps: [
+      "Тримай корпус стабільним протягом усього руху",
+      "Виконуй у контрольованому темпі, без ривків",
+      "Дихання узгоджене з фазами руху",
+    ],
+    mistake: "Типова помилка: втрата техніки при втомі",
+  },
+};
+
+function detectPattern(name, group) {
+  const n = name.toLowerCase();
+  if (group === "Pilates") return "stretch";
+  if (/присід|випад|степ-ап|зашагування|пістолетик|стінка|сумо|плие/.test(n)) return "squat";
+  if (/тяга|хіп-траст|міст|траст|розгинання стегна|кік-бек|донкі/.test(n)) return "hinge";
+  if (/жим|віджим/.test(n)) return "push";
+  if (/веслування|тяга trx|face pull|обличчя/.test(n)) return "pull";
+  if (/планка|скручування|прес|твіст|ножиці|hollow|v-|дровосек|dead bug/.test(n)) return "core";
+  if (/стрибок|стрибки|джамп|бурпі|скейтер/.test(n)) return "plyo";
+  if (/хода|прогулянка|перенесення|carry|тяга саней/.test(n)) return "carry";
+  return "full";
+}
+
+function localTechnique(ex) {
+  const pattern = detectPattern(ex.name, ex.group);
+  return PATTERN_TECHNIQUES[pattern] || PATTERN_TECHNIQUES.full;
+}
+
+/* ---- shared "how to perform" expand/lookup, used in Library and Workout ---- */
+
+function useTechniqueLookup() {
+  const [expandedId, setExpandedId] = useState(null);
+  const [cache, setCache] = useState({});
+
+  const toggleExpand = async (id, name, group) => {
+    const next = expandedId === id ? null : id;
+    setExpandedId(next);
+    if (next && !cache[id]) {
+      setCache((c) => ({ ...c, [id]: { loading: true } }));
+      let result;
+      try {
+        const prompt = `Коротко поясни техніку виконання вправи "${name}"${group ? ` (група м'язів: ${group})` : ""}.
+Формат JSON (без пробілів): {"steps":["крок 1","крок 2","крок 3"],"mistake":"найчастіша помилка коротко"}
+Максимум 4 кроки, кожен до 8 слів.`;
+        result = await callClaude(SYSTEM_PROMPT, prompt);
+      } catch {
+        result = localTechnique({ name, group: group || "" });
+      }
+      setCache((c) => ({ ...c, [id]: { loading: false, ...result } }));
+    }
+  };
+
+  return { expandedId, cache, toggleExpand };
+}
+
+function TechniqueDetail({ tech, exerciseName }) {
+  if (!tech || tech.loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", padding: "10px 0" }}>
+        <Loader2 size={14} color="#C6F135" className="spin" /> Завантажуємо техніку…
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: "4px 0 14px" }}>
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 6 }}>Як виконувати</div>
+      <ol style={{ margin: 0, paddingLeft: 18 }}>
+        {tech.steps?.map((s, i) => (
+          <li key={i} style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#F3F4F1", marginBottom: 4 }}>{s}</li>
+        ))}
+      </ol>
+      {tech.mistake && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#FF9F5B", marginTop: 8 }}>⚠ {tech.mistake}</div>
+      )}
+      <a
+        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(exerciseName + " техніка виконання вправи")}`}
+        target="_blank" rel="noopener noreferrer"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 700, color: "#C6F135", textDecoration: "none" }}
+      >
+        ▶ Відео на YouTube
+      </a>
+    </div>
+  );
+}
+
+/* ------------------------------- storage helper ----------------------------- */
+// This build runs as a plain static page (e.g. GitHub Pages), so it uses the
+// browser's own localStorage instead of the Claude-artifact window.storage
+// API. Function names/signatures are kept identical to the rest of the app
+// so no other code had to change.
+
+async function storageSet(key, value, shared = false) {
+  try {
+    localStorage.setItem(key, value);
+    return { key, value };
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function storageGet(key, shared = false) {
+  try {
+    const value = localStorage.getItem(key);
+    if (value === null) return null;
+    return { key, value };
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------- API helper -------------------------------- */
+
+// Attempts to recover a usable object from JSON text that was cut off mid-stream
+// (happens when the model hits the output token limit before finishing — more
+// likely with Cyrillic text, which costs more tokens per character than Latin).
+function tryRepairJSON(raw) {
+  const closers = { "{": "}", "[": "]" };
+  const cutPoints = [];
+  for (let i = raw.length; i > 0; i--) {
+    if ("}],".includes(raw[i - 1])) cutPoints.push(i);
+  }
+  cutPoints.push(raw.length);
+
+  for (const end of cutPoints) {
+    const sub = raw.slice(0, end).replace(/,\s*$/, "");
+    const stack = [];
+    let inStr = false, esc = false, ok = true;
+    for (let i = 0; i < sub.length; i++) {
+      const ch = sub[i];
+      if (esc) { esc = false; continue; }
+      if (ch === "\\") { esc = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === "{" || ch === "[") stack.push(ch);
+      else if (ch === "}" || ch === "]") {
+        const open = stack.pop();
+        if (!open || closers[open] !== ch) { ok = false; break; }
+      }
+    }
+    if (!ok || inStr) continue;
+    let candidate = sub;
+    for (let i = stack.length - 1; i >= 0; i--) candidate += closers[stack[i]];
+    try { return JSON.parse(candidate); } catch { /* try a shorter cut */ }
+  }
+  return null;
+}
+
+async function fetchWithRetry(body, attempts = 3) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      let data = null;
+      try { data = await res.json(); } catch { /* fall through to error below */ }
+      if (!res.ok || !data) {
+        throw new Error(data?.error?.message || `Тимчасова помилка запиту (${res.status || "мережа"})`);
+      }
+      return data;
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts) await new Promise((r) => setTimeout(r, 400 * i));
+    }
+  }
+  throw lastErr;
+}
+
+async function callClaude(system, user, retry = true) {
+  const data = await fetchWithRetry({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: `${system}\n\n${user}` }],
+  });
+  const text = (data.content || [])
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+  const clean = text.replace(/```json|```/g, "").trim();
+  const start = clean.indexOf("{");
+  if (start === -1) {
+    if (retry) return callClaude(system, user + "\n\nВАЖЛИВО: дуже коротко, лише JSON.", false);
+    throw new Error("AI повернув некоректну відповідь");
+  }
+  const jsonSlice = clean.slice(start);
+  try {
+    return JSON.parse(jsonSlice);
+  } catch {
+    const repaired = tryRepairJSON(jsonSlice);
+    if (repaired) return repaired;
+    if (retry) return callClaude(system, user + "\n\nВАЖЛИВО: відповідь занадто довга й обривається. Скороти notes, прибери необов'язкові поля, вклади JSON у ліміт.", false);
+    throw new Error("Відповідь від AI обірвалась. Спробуй ще раз.");
+  }
+}
+
+function exerciseCounts(duration) {
+  if (duration === 30) return { warmup: 2, blocks: 2, perBlock: 2, cooldown: 2 };
+  if (duration === 45) return { warmup: 2, blocks: 3, perBlock: 2, cooldown: 2 };
+  if (duration === 50) return { warmup: 2, blocks: 3, perBlock: 3, cooldown: 2 };
+  if (duration === 55) return { warmup: 2, blocks: 3, perBlock: 3, cooldown: 2 };
+  return { warmup: 2, blocks: 3, perBlock: 2, cooldown: 2 };
+}
+
+const SYSTEM_PROMPT = "Ти — методист групових фітнес-тренувань в Україні. Відповідай ЛИШЕ валідним компактним JSON без зайвих пробілів, без пояснень, без markdown-огорож. Мова — виключно українська. Назви вправ короткі (2-4 слова), поле note необов'язкове й максимум 3 слова. Ніколи не перевищуй запитану кількість елементів.";
+
+/* ---------------------------------- UI bits -------------------------------- */
+
+function Chip({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontFamily: "'Inter',sans-serif",
+        borderRadius: 999,
+        padding: "8px 14px",
+        fontSize: 13,
+        fontWeight: 600,
+        border: active ? "1px solid #C6F135" : "1px solid #2C3237",
+        background: active ? "#C6F135" : "#1D2125",
+        color: active ? "#14171A" : "#C7CCD1",
+        transition: "all .15s ease",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SectionLabel({ icon: Icon, children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 22 }}>
+      <Icon size={15} color="#C6F135" />
+      <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase" }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function TopBar({ title, onBack }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 20px 8px" }}>
+      {onBack && (
+        <button onClick={onBack} style={{ background: "none", border: "none", padding: 6, marginLeft: -6 }}>
+          <ChevronLeft size={22} color="#C7CCD1" />
+        </button>
+      )}
+      <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, letterSpacing: 1, color: "#F3F4F1", margin: 0 }}>
+        {title}
+      </h1>
+    </div>
+  );
+}
+
+function BigButton({ onClick, children, disabled, variant = "primary" }) {
+  const styles = {
+    primary: { background: "#C6F135", color: "#14171A" },
+    ghost: { background: "#1D2125", color: "#F3F4F1", border: "1px solid #2C3237" },
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        ...styles[variant],
+        width: "100%",
+        padding: "15px 18px",
+        borderRadius: 14,
+        fontFamily: "'Inter',sans-serif",
+        fontWeight: 700,
+        fontSize: 15,
+        opacity: disabled ? 0.5 : 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* --------------------------------- Home ------------------------------------ */
+
+function HomeScreen({ goto }) {
+  const cards = [
+    { key: "create", title: "Створити тренування", desc: "Повний план під параметри групи", icon: Dumbbell },
+    { key: "blockForm", title: "Створити блок", desc: "Силовий, кардіо, TRX, прес, сідниці…", icon: Target },
+    { key: "planForm", title: "План на місяць", desc: "Ротація тем без повторів", icon: CalendarDays },
+    { key: "savedList", title: "Збережені тренування", desc: "Раніше згенеровані плани", icon: Save },
+    { key: "library", title: "Бібліотека вправ", desc: "Фільтри за м'язами й інвентарем", icon: LibraryIcon },
+  ];
+  return (
+    <div style={{ padding: "24px 20px 40px" }}>
+      <div style={{ marginBottom: 26 }}>
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2, color: "#C6F135", textTransform: "uppercase" }}>AI Coach</div>
+        <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 40, color: "#F3F4F1", margin: "4px 0 0", lineHeight: 1 }}>
+          Тренування за секунди
+        </h1>
+        <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#8D949B", marginTop: 8 }}>
+          Обери параметри — і отримай готовий план для групи.
+        </p>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {cards.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => goto(c.key)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              background: "#1D2125",
+              border: "1px solid #262B30",
+              borderRadius: 16,
+              padding: "16px 16px",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: "#262B30", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <c.icon size={20} color="#C6F135" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 15, color: "#F3F4F1" }}>{c.title}</div>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 2 }}>{c.desc}</div>
+            </div>
+            <ChevronRight size={18} color="#5C6268" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Params form --------------------------------- */
+
+function ParamsForm({ params, setParams, onSubmit, loading, error, submitLabel, showTheme = true }) {
+  const toggleEq = (opt) => {
+    setParams((p) => ({
+      ...p,
+      equipment: p.equipment.includes(opt) ? p.equipment.filter((e) => e !== opt) : [...p.equipment, opt],
+    }));
+  };
+  return (
+    <div style={{ padding: "8px 20px 32px" }}>
+      <SectionLabel icon={Clock}>Тривалість</SectionLabel>
+      <div style={{ display: "flex", gap: 8 }}>
+        {DURATIONS.map((d) => (
+          <Chip key={d} active={params.duration === d} onClick={() => setParams((p) => ({ ...p, duration: d }))}>
+            {d} хв
+          </Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Users}>Кількість людей</SectionLabel>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "10px 16px", width: "fit-content" }}>
+        <button onClick={() => setParams((p) => ({ ...p, people: Math.max(1, p.people - 1) }))} style={{ background: "#262B30", width: 32, height: 32, borderRadius: 8, color: "#F3F4F1", fontSize: 18, fontWeight: 700 }}>−</button>
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 20, color: "#F3F4F1", minWidth: 28, textAlign: "center" }}>{params.people}</span>
+        <button onClick={() => setParams((p) => ({ ...p, people: Math.min(40, p.people + 1) }))} style={{ background: "#262B30", width: 32, height: 32, borderRadius: 8, color: "#F3F4F1", fontSize: 18, fontWeight: 700 }}>+</button>
+      </div>
+
+      <SectionLabel icon={Wrench}>Обладнання</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {EQUIPMENT_OPTIONS.map((opt) => (
+          <Chip key={opt} active={params.equipment.includes(opt)} onClick={() => toggleEq(opt)}>{opt}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Gauge}>Рівень групи</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {LEVELS.map((l) => (
+          <Chip key={l} active={params.level === l} onClick={() => setParams((p) => ({ ...p, level: l }))}>{l}</Chip>
+        ))}
+      </div>
+
+      {showTheme && (
+        <>
+          <SectionLabel icon={Target}>Тема</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {THEMES.map((t) => (
+              <Chip key={t} active={params.theme === t} onClick={() => setParams((p) => ({ ...p, theme: t }))}>{t}</Chip>
+            ))}
+          </div>
+        </>
+      )}
+
+      <SectionLabel icon={Zap}>Фінішер (опційно)</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <Chip active={!params.finisher} onClick={() => setParams((p) => ({ ...p, finisher: null }))}>Без фінішера</Chip>
+        {FINISHER_FORMATS.map((f) => (
+          <Chip key={f.key} active={params.finisher === f.key} onClick={() => setParams((p) => ({ ...p, finisher: f.key }))}>{f.label}</Chip>
+        ))}
+      </div>
+      {params.finisher && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 8 }}>
+          {FINISHER_FORMATS.find((f) => f.key === params.finisher)?.desc}
+        </div>
+      )}
+      {(params.finisher === "EMOM" || params.finisher === "AMRAP") && (
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          {FINISHER_DURATIONS.map((d) => (
+            <Chip key={d} active={params.finisherDuration === d} onClick={() => setParams((p) => ({ ...p, finisherDuration: d }))}>{d} хв</Chip>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 20, color: "#FF6B57", fontFamily: "'Inter',sans-serif", fontSize: 13 }}>
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
+
+      <div style={{ marginTop: 28 }}>
+        <BigButton onClick={onSubmit} disabled={loading}>
+          {loading ? <><Loader2 size={16} className="spin" /> Генеруємо…</> : submitLabel}
+        </BigButton>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Workout result ------------------------------ */
+
+function ExerciseRow({ ex, onReplace, replacing, isOpen, tech, onToggleTechnique }) {
+  const v = ex.note && GROUP_VISUALS[ex.note] ? groupVisual(ex.note) : null;
+  return (
+    <div style={{ borderBottom: "1px solid #262B30" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+        <button onClick={onToggleTechnique} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, background: "none", border: "none", textAlign: "left", padding: 0 }}>
+          {v && (
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0, marginRight: 10,
+              background: `linear-gradient(155deg, ${v.color}33, ${v.color}11)`,
+              border: `1px solid ${v.color}55`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <v.icon size={15} color={v.color} />
+            </div>
+          )}
+          <div style={{ flex: 1, paddingRight: 10, minWidth: 0 }}>
+            <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 14, color: "#F3F4F1" }}>{ex.name}</div>
+            {ex.note && (
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 2 }}>
+                {ex.note}
+              </div>
+            )}
+          </div>
+        </button>
+        <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 16, color: "#C6F135", marginRight: 12, whiteSpace: "nowrap" }}>
+          {ex.sets}×{ex.reps}
+        </div>
+        <button onClick={onReplace} disabled={replacing} style={{ background: "#262B30", borderRadius: 10, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          {replacing ? <Loader2 size={15} color="#C6F135" className="spin" /> : <RefreshCw size={15} color="#C7CCD1" />}
+        </button>
+      </div>
+      {isOpen && (
+        <div style={{ paddingLeft: v ? 44 : 0, paddingBottom: 4 }}>
+          <TechniqueDetail tech={tech} exerciseName={ex.name} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WarmCoolRow({ item }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #262B30" }}>
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: "#F3F4F1" }}>{item.name}</div>
+      <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 13, color: "#4FA8E0" }}>{item.dur}</div>
+    </div>
+  );
+}
+
+function FinisherBlock({ finisher, onRegenerate, regenerating }) {
+  if (!finisher) return null;
+  return (
+    <div style={{
+      marginTop: 26, padding: 16, borderRadius: 16,
+      background: "linear-gradient(155deg, #C6F13522, #C6F13508)",
+      border: "1px solid #C6F13555",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Zap size={16} color="#C6F135" />
+          <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "#F3F4F1", letterSpacing: 0.5 }}>{finisher.name}</span>
+        </div>
+        <button onClick={onRegenerate} disabled={regenerating} style={{ background: "#262B30", borderRadius: 10, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {regenerating ? <Loader2 size={14} color="#C6F135" className="spin" /> : <RefreshCw size={14} color="#C7CCD1" />}
+        </button>
+      </div>
+      {finisher.instructions && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 6 }}>{finisher.instructions}</div>
+      )}
+      <div style={{ marginTop: 12 }}>
+        {finisher.exercises?.map((ex, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: i > 0 ? "1px solid #C6F13533" : "none" }}>
+            <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#F3F4F1" }}>{ex.name}</span>
+            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 13, color: "#C6F135" }}>{ex.reps}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew, onAddBlock, saved, usedFallback, onRegenerateFinisher, finisherLoading, saveError }) {
+  const { expandedId, cache: techCache, toggleExpand } = useTechniqueLookup();
+  if (!workout) return null;
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#C6F135", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>
+        {params.theme} · {params.duration} хв · {params.people} людей
+      </div>
+      <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "#F3F4F1", margin: "4px 0 0" }}>{workout.title}</h2>
+      {usedFallback && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8D949B", marginTop: 4 }}>
+          ⚡ Згенеровано локально (AI зараз недоступний)
+        </div>
+      )}
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268", marginTop: 6 }}>Тапни на вправу, щоб побачити техніку виконання</div>
+
+      {workout.warmup?.length > 0 && (
+        <>
+          <SectionLabel icon={Clock}>Розминка</SectionLabel>
+          {workout.warmup.map((w, i) => <WarmCoolRow key={i} item={w} />)}
+        </>
+      )}
+
+      {workout.blocks?.map((block, bi) => (
+        <div key={bi}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 24, marginBottom: 8 }}>
+            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: "#C6F135" }}>{String(bi + 1).padStart(2, "0")}</span>
+            <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>{block.name}</span>
+          </div>
+          {block.exercises?.map((ex, ei) => {
+            const rowId = `${bi}-${ei}`;
+            return (
+              <ExerciseRow
+                key={ei}
+                ex={ex}
+                replacing={replacingKey === rowId}
+                onReplace={() => onReplace(bi, ei)}
+                isOpen={expandedId === rowId}
+                tech={techCache[rowId]}
+                onToggleTechnique={() => toggleExpand(rowId, ex.name, ex.note && MUSCLE_GROUPS.includes(ex.note) ? ex.note : null)}
+              />
+            );
+          })}
+        </div>
+      ))}
+
+      <FinisherBlock finisher={workout.finisher} onRegenerate={onRegenerateFinisher} regenerating={finisherLoading} />
+
+      {workout.cooldown?.length > 0 && (
+        <>
+          <SectionLabel icon={Clock}>Заминка</SectionLabel>
+          {workout.cooldown.map((w, i) => <WarmCoolRow key={i} item={w} />)}
+        </>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 30 }}>
+        <BigButton onClick={onSave} variant={saved ? "ghost" : "primary"}>
+          {saved ? <><Check size={16} /> Збережено</> : <><Save size={16} /> Зберегти тренування</>}
+        </BigButton>
+        {saveError && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", color: "#FF6B57", fontFamily: "'Inter',sans-serif", fontSize: 13 }}>
+            <AlertCircle size={16} /> {saveError}
+          </div>
+        )}
+        <BigButton onClick={onAddBlock} variant="ghost"><Plus size={16} /> Додати ще блок</BigButton>
+        <BigButton onClick={onNew} variant="ghost">Створити нове тренування</BigButton>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- Block form -------------------------------- */
+
+function BlockForm({ onSubmit, loading, error, params, setParams }) {
+  const toggleEq = (opt) => {
+    setParams((p) => ({ ...p, equipment: p.equipment.includes(opt) ? p.equipment.filter((e) => e !== opt) : [...p.equipment, opt] }));
+  };
+  return (
+    <div style={{ padding: "8px 20px 32px" }}>
+      <SectionLabel icon={Target}>Тип блоку</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {BLOCK_TYPES.map((t) => (
+          <Chip key={t} active={params.blockType === t} onClick={() => setParams((p) => ({ ...p, blockType: t }))}>{t}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Clock}>Тривалість блоку</SectionLabel>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[8, 12, 16, 20].map((d) => (
+          <Chip key={d} active={params.blockDuration === d} onClick={() => setParams((p) => ({ ...p, blockDuration: d }))}>{d} хв</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Users}>Кількість людей</SectionLabel>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "10px 16px", width: "fit-content" }}>
+        <button onClick={() => setParams((p) => ({ ...p, people: Math.max(1, p.people - 1) }))} style={{ background: "#262B30", width: 32, height: 32, borderRadius: 8, color: "#F3F4F1", fontSize: 18, fontWeight: 700 }}>−</button>
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 20, color: "#F3F4F1", minWidth: 28, textAlign: "center" }}>{params.people}</span>
+        <button onClick={() => setParams((p) => ({ ...p, people: Math.min(40, p.people + 1) }))} style={{ background: "#262B30", width: 32, height: 32, borderRadius: 8, color: "#F3F4F1", fontSize: 18, fontWeight: 700 }}>+</button>
+      </div>
+
+      <SectionLabel icon={Wrench}>Обладнання</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {EQUIPMENT_OPTIONS.map((opt) => (
+          <Chip key={opt} active={params.equipment.includes(opt)} onClick={() => toggleEq(opt)}>{opt}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Gauge}>Рівень групи</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {LEVELS.map((l) => (
+          <Chip key={l} active={params.level === l} onClick={() => setParams((p) => ({ ...p, level: l }))}>{l}</Chip>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 20, color: "#FF6B57", fontFamily: "'Inter',sans-serif", fontSize: 13 }}>
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
+
+      <div style={{ marginTop: 28 }}>
+        <BigButton onClick={onSubmit} disabled={loading}>
+          {loading ? <><Loader2 size={16} className="spin" /> Генеруємо…</> : "Згенерувати блок"}
+        </BigButton>
+      </div>
+    </div>
+  );
+}
+
+function BlockResult({ block, onNew, onAppend, canAppend }) {
+  if (!block) return null;
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: "#F3F4F1", margin: 0 }}>{block.name}</h2>
+      {block.exercises?.map((ex, i) => <ExerciseRow key={i} ex={ex} onReplace={() => {}} replacing={false} />)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
+        {canAppend && <BigButton onClick={onAppend}><Plus size={16} /> Додати до поточного тренування</BigButton>}
+        <BigButton onClick={onNew} variant="ghost">Створити інший блок</BigButton>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- Month plan --------------------------------- */
+
+function PlanForm({ onSubmit, loading, error, params, setParams }) {
+  const toggleEq = (opt) => setParams((p) => ({ ...p, equipment: p.equipment.includes(opt) ? p.equipment.filter((e) => e !== opt) : [...p.equipment, opt] }));
+  const toggleTheme = (t) => setParams((p) => ({ ...p, themes: p.themes.includes(t) ? p.themes.filter((x) => x !== t) : [...p.themes, t] }));
+  return (
+    <div style={{ padding: "8px 20px 32px" }}>
+      <SectionLabel icon={CalendarDays}>Занять на тиждень</SectionLabel>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[3, 4, 5, 6].map((n) => (
+          <Chip key={n} active={params.sessionsPerWeek === n} onClick={() => setParams((p) => ({ ...p, sessionsPerWeek: n }))}>{n}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Target}>Теми для ротації</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {THEMES.map((t) => (
+          <Chip key={t} active={params.themes.includes(t)} onClick={() => toggleTheme(t)}>{t}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Wrench}>Обладнання</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {EQUIPMENT_OPTIONS.map((opt) => (
+          <Chip key={opt} active={params.equipment.includes(opt)} onClick={() => toggleEq(opt)}>{opt}</Chip>
+        ))}
+      </div>
+
+      <SectionLabel icon={Gauge}>Рівень групи</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {LEVELS.map((l) => (
+          <Chip key={l} active={params.level === l} onClick={() => setParams((p) => ({ ...p, level: l }))}>{l}</Chip>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 20, color: "#FF6B57", fontFamily: "'Inter',sans-serif", fontSize: 13 }}>
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
+
+      <div style={{ marginTop: 28 }}>
+        <BigButton onClick={onSubmit} disabled={loading}>
+          {loading ? <><Loader2 size={16} className="spin" /> Складаємо план ({params.progress || 0}/4)…</> : "Скласти план на місяць"}
+        </BigButton>
+      </div>
+    </div>
+  );
+}
+
+function PlanResult({ plan, onNew }) {
+  if (!plan) return null;
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      {plan.weeks.map((week, wi) => (
+        <div key={wi} style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: "#C6F135", marginBottom: 8 }}>
+            Тиждень {wi + 1}
+          </div>
+          {week.days.map((d, di) => (
+            <div key={di} style={{ padding: "10px 0", borderBottom: "1px solid #262B30" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>День {d.day} · {d.theme}</span>
+              </div>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 3 }}>{d.focus}</div>
+              {d.blocks?.length > 0 && (
+                <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: "#4FA8E0", marginTop: 4 }}>
+                  {d.blocks.join(" · ")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ marginTop: 10 }}>
+        <BigButton onClick={onNew} variant="ghost">Скласти новий план</BigButton>
+      </div>
+    </div>
+  );
+}
+
+function SavedListScreen({ savedWorkouts, onOpen, onDelete }) {
+  if (!savedWorkouts || savedWorkouts.length === 0) {
+    return (
+      <div style={{ padding: "40px 20px", textAlign: "center" }}>
+        <Save size={28} color="#5C6268" style={{ margin: "0 auto 10px" }} />
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#8D949B" }}>
+          Тут з'являться тренування, які ти збережеш.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      {savedWorkouts.map((item) => {
+        const date = new Date(item.savedAt);
+        const dateStr = date.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+        return (
+          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 0", borderBottom: "1px solid #262B30" }}>
+            <button onClick={() => onOpen(item)} style={{ flex: 1, textAlign: "left", background: "none", border: "none", padding: 0 }}>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 15, color: "#F3F4F1" }}>{item.workout?.title || item.params?.theme}</div>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 3 }}>
+                {item.params?.theme} · {item.params?.duration} хв · {item.params?.people} людей · {dateStr}
+              </div>
+            </button>
+            <button onClick={() => onOpen(item)} style={{ background: "#262B30", borderRadius: 10, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <ChevronRight size={16} color="#C7CCD1" />
+            </button>
+            <button onClick={() => onDelete(item.id)} style={{ background: "#262B30", borderRadius: 10, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Trash2 size={15} color="#FF6B57" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------- Library tab --------------------------------- */
+
+function LibraryTab() {
+  const [search, setSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState([]);
+  const [eqFilter, setEqFilter] = useState([]);
+  const { expandedId, cache: techniqueCache, toggleExpand: toggleExpandRaw } = useTechniqueLookup();
+  const toggleExpand = (ex) => toggleExpandRaw(ex.id, ex.name, ex.group);
+
+  const toggle = (arr, setArr, val) => setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
+
+  const filtered = EXERCISE_LIBRARY.filter((ex) => {
+    const matchSearch = ex.name.toLowerCase().includes(search.toLowerCase());
+    const matchGroup = groupFilter.length === 0 || groupFilter.includes(ex.group);
+    const matchEq = eqFilter.length === 0 || ex.eq.some((e) => eqFilter.includes(e));
+    return matchSearch && matchGroup && matchEq;
+  });
+
+  return (
+    <div style={{ padding: "20px 20px 40px" }}>
+      <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, color: "#F3F4F1", margin: "0 0 16px" }}>Бібліотека вправ</h1>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
+        <Search size={16} color="#8D949B" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Пошук вправи…"
+          style={{ background: "none", border: "none", outline: "none", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 14, width: "100%" }}
+        />
+      </div>
+
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 8 }}>М'язова група</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {MUSCLE_GROUPS.map((g) => {
+          const v = groupVisual(g);
+          return (
+            <button
+              key={g}
+              onClick={() => toggle(groupFilter, setGroupFilter, g)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontFamily: "'Inter',sans-serif", borderRadius: 999, padding: "8px 14px", fontSize: 13, fontWeight: 600,
+                border: groupFilter.includes(g) ? "1px solid #C6F135" : "1px solid #2C3237",
+                background: groupFilter.includes(g) ? "#C6F135" : "#1D2125",
+                color: groupFilter.includes(g) ? "#14171A" : "#C7CCD1",
+              }}
+            >
+              <v.icon size={14} color={groupFilter.includes(g) ? "#14171A" : v.color} />
+              {g}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 8 }}>Обладнання</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+        {EQUIPMENT_OPTIONS.map((e) => (
+          <Chip key={e} active={eqFilter.includes(e)} onClick={() => toggle(eqFilter, setEqFilter, e)}>{e}</Chip>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#5C6268", marginBottom: 8 }}>{filtered.length} вправ · тапни для техніки виконання</div>
+      {filtered.map((ex) => {
+        const v = groupVisual(ex.group);
+        const isOpen = expandedId === ex.id;
+        const tech = techniqueCache[ex.id];
+        return (
+          <div key={ex.id} style={{ borderBottom: "1px solid #262B30" }}>
+            <button onClick={() => toggleExpand(ex)} style={{ display: "flex", gap: 12, padding: "12px 0", width: "100%", background: "none", border: "none", textAlign: "left" }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+                background: `linear-gradient(155deg, ${v.color}26, ${v.color}0A)`,
+                border: `1px solid ${v.color}55`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <PoseIllustration group={ex.group} color={v.color} size={38} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 14, color: "#F3F4F1" }}>{ex.name}</div>
+                <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: v.color, background: "#262B30", padding: "2px 8px", borderRadius: 6 }}>{ex.group}</span>
+                  {ex.eq.map((e) => (
+                    <span key={e} style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: "#4FA8E0", background: "#262B30", padding: "2px 8px", borderRadius: 6 }}>{e}</span>
+                  ))}
+                </div>
+              </div>
+              <ChevronRight size={16} color="#5C6268" style={{ flexShrink: 0, alignSelf: "center", transform: isOpen ? "rotate(90deg)" : "none" }} />
+            </button>
+
+            {isOpen && (
+              <div style={{ padding: "0 0 16px 68px" }}>
+                <TechniqueDetail tech={tech} exerciseName={ex.name} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {filtered.length === 0 && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#5C6268", textAlign: "center", marginTop: 30 }}>
+          Нічого не знайдено — спробуй інші фільтри.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------- App ------------------------------------ */
+
+const defaultParams = () => ({ duration: 45, people: 12, equipment: [], level: "Змішаний", theme: "Full Body", finisher: null, finisherDuration: 10 });
+const defaultBlockParams = () => ({ blockType: "Силовий", blockDuration: 12, people: 12, equipment: [], level: "Змішаний" });
+const defaultPlanParams = () => ({ sessionsPerWeek: 4, themes: [...THEMES], equipment: [], level: "Змішаний", progress: 0 });
+
+function App() {
+  const [tab, setTab] = useState("coach");
+  const [view, setView] = useState("home");
+
+  const [params, setParams] = useState(defaultParams());
+  const [workout, setWorkout] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [replacingKey, setReplacingKey] = useState(null);
+  const [savedFlag, setSavedFlag] = useState(false);
+  const [usedFallback, setUsedFallback] = useState(false);
+  const [finisherLoading, setFinisherLoading] = useState(false);
+
+  const [blockParams, setBlockParams] = useState(defaultBlockParams());
+  const [block, setBlock] = useState(null);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockError, setBlockError] = useState(null);
+
+  const [planParams, setPlanParams] = useState(defaultPlanParams());
+  const [plan, setPlan] = useState(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState(null);
+
+  const [savedWorkouts, setSavedWorkouts] = useState([]);
+  const [workoutOrigin, setWorkoutOrigin] = useState("create"); // "create" | "saved"
+
+  const loadSavedWorkouts = useCallback(async () => {
+    try {
+      const existing = await storageGet("saved-workouts", false);
+      if (existing?.value) setSavedWorkouts(JSON.parse(existing.value));
+    } catch {
+      setSavedWorkouts([]);
+    }
+  }, []);
+
+  const deleteSavedWorkout = useCallback(async (id) => {
+    const next = savedWorkouts.filter((w) => w.id !== id);
+    setSavedWorkouts(next);
+    try {
+      await storageSet("saved-workouts", JSON.stringify(next), false);
+    } catch {}
+  }, [savedWorkouts]);
+
+  const openSavedWorkout = useCallback((item) => {
+    setWorkout(item.workout);
+    setParams(item.params);
+    setSavedFlag(true);
+    setUsedFallback(false);
+    setWorkoutOrigin("saved");
+    setView("workoutResult");
+  }, []);
+
+  const goto = (v) => {
+    setError(null); setBlockError(null); setPlanError(null);
+    if (v === "library") { setTab("library"); return; }
+    if (v === "planForm" || v === "planResult") { setTab("plan"); setView(v); return; }
+    setTab("coach");
+    if (v === "create") setWorkoutOrigin("create");
+    setView(v);
+  };
+
+  const generateWorkout = useCallback(async () => {
+    setLoading(true); setError(null); setSavedFlag(false);
+    try {
+      const c = exerciseCounts(params.duration);
+      const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
+      const focuses = getBlockFocuses(params.theme, c.blocks);
+      const focusLines = focuses.map((f, i) => `Блок ${i + 1}: акцент — ${focusLabel(f)}`).join("\n");
+      const userPrompt = `Склади групове тренування.
+Тривалість: ${params.duration} хв
+Кількість людей: ${params.people}
+Обладнання: ${eqStr}
+Рівень групи: ${params.level}
+Тема: ${params.theme}
+
+Орієнтовний акцент по блоках (можна відхилятись, це не жорстка вимога):
+${focusLines}
+Розминка — ${c.warmup} вправи, заминка — ${c.cooldown} вправи.
+ВАЖЛИВО: ніколи не став поруч (в межах одного блоку чи на стику блоків) дві вправи одного типу руху — наприклад два присіди, два жими лежачи, дві планки поспіль. Чергуй типи рухів (присід / тазостегновий нахил / жим / тяга / кор / вибухові) для різноманітності. Якщо в межах акценту блоку бракує різних типів рухів — краще взяти вправу із суміжної м'язової групи цієї ж теми, ніж повторити той самий тип руху.
+Назви блоків формату "Блок N: <акцент як вказано вище>".
+Формат JSON (без пробілів, лише ці поля):
+{"title":"...","warmup":[{"name":"...","dur":"60 сек"}],"blocks":[{"name":"Блок 1: ...","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}],"cooldown":[{"name":"...","dur":"60 сек"}]}`;
+      let result, fallback = false;
+      try {
+        result = await callClaude(SYSTEM_PROMPT, userPrompt);
+      } catch {
+        result = localWorkout(params);
+        fallback = true;
+      }
+
+      if (params.finisher) {
+        const fmtInfo = FINISHER_FORMATS.find((f) => f.key === params.finisher);
+        const finisherPrompt = `Додай фінішер (короткий завершальний блок високої інтенсивності) до тренування на тему "${params.theme}".
+Формат: ${fmtInfo.label} (${fmtInfo.desc})
+${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалість: ${params.finisherDuration} хв` : ""}
+Обладнання: ${eqStr}
+Рівень: ${params.level}
+Формат JSON (без пробілів): {"name":"Фінішер: ${fmtInfo.label}","format":"${params.finisher}","instructions":"коротко до 10 слів","exercises":[{"name":"...","reps":"..."}]}
+Кількість вправ: 2-4 залежно від формату.`;
+        try {
+          result.finisher = fallback ? localFinisher(params.finisher, params.finisherDuration, params.theme, params.equipment, params.level) : await callClaude(SYSTEM_PROMPT, finisherPrompt);
+        } catch {
+          result.finisher = localFinisher(params.finisher, params.finisherDuration, params.theme, params.equipment, params.level);
+        }
+      }
+
+      setWorkout(result);
+      setUsedFallback(fallback);
+      setView("workoutResult");
+    } catch (e) {
+      setError(e.message || "Не вдалось згенерувати тренування. Спробуй ще раз.");
+    } finally {
+      setLoading(false);
+    }
+  }, [params]);
+
+  const replaceExercise = useCallback(async (bi, ei) => {
+    if (!workout) return;
+    const key = `${bi}-${ei}`;
+    setReplacingKey(key);
+    try {
+      const block = workout.blocks[bi];
+      const oldEx = block.exercises[ei];
+      const usedNames = [
+        ...workout.warmup.map((w) => w.name),
+        ...workout.blocks.flatMap((b) => b.exercises.map((e) => e.name)),
+        ...workout.cooldown.map((w) => w.name),
+      ];
+      const blockFocus = inferBlockFocus(block.name, params.theme);
+      const focusText = blockFocus ? focusLabel(blockFocus) : params.theme;
+      const neighborPatterns = [];
+      if (ei > 0) neighborPatterns.push(detectPattern(block.exercises[ei - 1].name, block.exercises[ei - 1].note || ""));
+      if (ei < block.exercises.length - 1) neighborPatterns.push(detectPattern(block.exercises[ei + 1].name, block.exercises[ei + 1].note || ""));
+      const neighborPatternLabels = [...new Set(neighborPatterns)].map((p) => PATTERN_LABELS_UK[p] || p);
+      const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
+      const userPrompt = `Тема тренування: "${params.theme}", рівень: ${params.level}, обладнання: ${eqStr}.
+Заміни вправу "${oldEx.name}" у блоці "${block.name}".
+Бажано (не обов'язково) тримати той самий загальний фокус блоку: ${focusText}.
+${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в цьому блоці вже мають тип руху "${neighborPatternLabels.join(', ')}" — нова вправа НЕ повинна бути того ж типу (щоб не було двох однакових рухів поспіль, наприклад двох присідів).` : ""}
+Вже використані вправи, не повторювати: ${usedNames.join(", ")}
+Поверни ОДНУ вправу у форматі JSON (без пробілів): {"name":"...","sets":3,"reps":"12-15","note":"..."}`;
+      let newEx;
+      try {
+        newEx = await callClaude(SYSTEM_PROMPT, userPrompt);
+      } catch {
+        newEx = localReplacement(params.theme, params.level, params.equipment, usedNames, blockFocus, neighborPatterns);
+      }
+      setWorkout((w) => {
+        const copy = structuredClone(w);
+        copy.blocks[bi].exercises[ei] = newEx;
+        return copy;
+      });
+    } catch (e) {
+      setError("Не вдалось замінити вправу.");
+    } finally {
+      setReplacingKey(null);
+    }
+  }, [workout, params]);
+
+  const saveWorkout = useCallback(async () => {
+    setError(null);
+    const entry = { id: Date.now(), workout, params, savedAt: new Date().toISOString() };
+    const trimmed = [entry, ...savedWorkouts].slice(0, 50);
+    // Update in-memory list immediately so Save always works within this session,
+    // even if the persistent storage backend is having issues.
+    setSavedWorkouts(trimmed);
+    setSavedFlag(true);
+    try {
+      await storageSet("saved-workouts", JSON.stringify(trimmed), false);
+    } catch (e) {
+      setError(`Збережено лише на цю сесію — постійне сховище зараз недоступне (${e?.message || "помилка сховища"}). Після закриття застосунку тренування може зникнути.`);
+    }
+  }, [workout, params, savedWorkouts]);
+
+  const regenerateFinisher = useCallback(async () => {
+    if (!workout || !params.finisher) return;
+    setFinisherLoading(true);
+    try {
+      const fmtInfo = FINISHER_FORMATS.find((f) => f.key === params.finisher);
+      const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
+      const finisherPrompt = `Додай фінішер (короткий завершальний блок високої інтенсивності) до тренування на тему "${params.theme}".
+Формат: ${fmtInfo.label} (${fmtInfo.desc})
+${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалість: ${params.finisherDuration} хв` : ""}
+Обладнання: ${eqStr}
+Рівень: ${params.level}
+Формат JSON (без пробілів): {"name":"Фінішер: ${fmtInfo.label}","format":"${params.finisher}","instructions":"коротко до 10 слів","exercises":[{"name":"...","reps":"..."}]}
+Кількість вправ: 2-4 залежно від формату.`;
+      let newFinisher;
+      try {
+        newFinisher = await callClaude(SYSTEM_PROMPT, finisherPrompt);
+      } catch {
+        newFinisher = localFinisher(params.finisher, params.finisherDuration, params.theme, params.equipment, params.level);
+      }
+      setWorkout((w) => ({ ...w, finisher: newFinisher }));
+    } finally {
+      setFinisherLoading(false);
+    }
+  }, [workout, params]);
+
+  const generateBlock = useCallback(async () => {
+    setBlockLoading(true); setBlockError(null);
+    try {
+      const count = blockParams.blockDuration <= 8 ? 3 : blockParams.blockDuration <= 12 ? 4 : blockParams.blockDuration <= 16 ? 5 : 6;
+      const eqStr = blockParams.equipment.length ? blockParams.equipment.join(", ") : "без інвентаря";
+      const usedNames = workout ? workout.blocks.flatMap((b) => b.exercises.map((e) => e.name)) : [];
+      const userPrompt = `Створи блок вправ.
+Тип блоку: ${blockParams.blockType}
+Тривалість: ${blockParams.blockDuration} хв
+Кількість людей: ${blockParams.people}
+Обладнання: ${eqStr}
+Рівень: ${blockParams.level}
+Кількість вправ: ${count}
+${usedNames.length ? `Не повторювати вправи: ${usedNames.join(", ")}` : ""}
+Формат JSON (без пробілів): {"name":"Блок: ${blockParams.blockType}","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}`;
+      let result;
+      try {
+        result = await callClaude(SYSTEM_PROMPT, userPrompt);
+      } catch {
+        result = localBlock(blockParams.blockType, blockParams.level, blockParams.equipment, count, usedNames);
+      }
+      setBlock(result);
+      setView("blockResult");
+    } catch (e) {
+      setBlockError(e.message || "Не вдалось згенерувати блок.");
+    } finally {
+      setBlockLoading(false);
+    }
+  }, [blockParams, workout]);
+
+  const appendBlockToWorkout = useCallback(() => {
+    if (!workout || !block) return;
+    setWorkout((w) => {
+      const copy = structuredClone(w);
+      copy.blocks.push(block);
+      return copy;
+    });
+    setView("workoutResult");
+  }, [workout, block]);
+
+  const generatePlan = useCallback(async () => {
+    setPlanLoading(true); setPlanError(null);
+    const eqStr = planParams.equipment.length ? planParams.equipment.join(", ") : "без інвентаря";
+    const themesPool = planParams.themes.length ? planParams.themes : THEMES;
+    const weeks = [];
+    let usedSummary = "";
+    try {
+      for (let w = 1; w <= 4; w++) {
+        setPlanParams((p) => ({ ...p, progress: w - 1 }));
+        const userPrompt = `Склади розклад групових тренувань на тиждень ${w} із ${planParams.sessionsPerWeek} занять.
+Рівень групи: ${planParams.level}
+Обладнання: ${eqStr}
+Теми для ротації: ${themesPool.join(", ")}
+${usedSummary ? `Вже було в попередніх тижнях, уникай точних повторів тем поспіль: ${usedSummary}` : ""}
+Формат JSON: {"days":[{"day":1,"theme":"...","focus":"коротко до 8 слів","blocks":["...","...","..."]}]}
+Кількість днів у масиві: ${planParams.sessionsPerWeek}`;
+        let result;
+        try {
+          result = await callClaude(SYSTEM_PROMPT, userPrompt);
+        } catch {
+          result = localPlanWeek(themesPool, planParams.sessionsPerWeek, w - 1);
+        }
+        weeks.push(result);
+        usedSummary += ` Тиждень ${w}: ${result.days.map((d) => d.theme).join(", ")}.`;
+      }
+      const fullPlan = { weeks, params: planParams, createdAt: new Date().toISOString() };
+      setPlan(fullPlan);
+      try {
+        await storageSet("month-plan", JSON.stringify(fullPlan), false);
+      } catch {}
+      setView("planResult");
+    } catch (e) {
+      setPlanError(e.message || "Не вдалось скласти план. Спробуй ще раз.");
+    } finally {
+      setPlanLoading(false);
+      setPlanParams((p) => ({ ...p, progress: 0 }));
+    }
+  }, [planParams]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const existing = await storageGet("month-plan", false);
+        if (existing?.value) {
+          const parsed = JSON.parse(existing.value);
+          setPlan(parsed);
+        }
+      } catch {}
+    })();
+    loadSavedWorkouts();
+  }, []);
+
+  const tabs = [
+    { key: "coach", label: "Тренування", icon: Dumbbell },
+    { key: "library", label: "Бібліотека", icon: LibraryIcon },
+    { key: "plan", label: "План", icon: CalendarDays },
+  ];
+
+  let body;
+  if (tab === "library") {
+    body = <LibraryTab />;
+  } else if (tab === "plan") {
+    body = view === "planResult" || plan
+      ? <>
+          <TopBar title="План на місяць" />
+          {view === "planForm" ? (
+            <PlanForm onSubmit={generatePlan} loading={planLoading} error={planError} params={planParams} setParams={setPlanParams} />
+          ) : (
+            <PlanResult plan={plan} onNew={() => { setPlan(null); setView("planForm"); }} />
+          )}
+        </>
+      : <>
+          <TopBar title="План на місяць" />
+          <PlanForm onSubmit={generatePlan} loading={planLoading} error={planError} params={planParams} setParams={setPlanParams} />
+        </>;
+  } else {
+    // coach tab
+    if (view === "home") {
+      body = <HomeScreen goto={goto} />;
+    } else if (view === "create") {
+      body = <>
+        <TopBar title="Створити тренування" onBack={() => goto("home")} />
+        <ParamsForm params={params} setParams={setParams} onSubmit={generateWorkout} loading={loading} error={error} submitLabel="Згенерувати" />
+      </>;
+    } else if (view === "savedList") {
+      body = <>
+        <TopBar title="Збережені тренування" onBack={() => goto("home")} />
+        <SavedListScreen savedWorkouts={savedWorkouts} onOpen={openSavedWorkout} onDelete={deleteSavedWorkout} />
+      </>;
+    } else if (view === "workoutResult") {
+      body = <>
+        <TopBar title="Тренування" onBack={() => goto(workoutOrigin === "saved" ? "savedList" : "home")} />
+        <WorkoutResult
+          workout={workout}
+          params={params}
+          onReplace={replaceExercise}
+          replacingKey={replacingKey}
+          onSave={saveWorkout}
+          saved={savedFlag}
+          usedFallback={usedFallback}
+          onRegenerateFinisher={regenerateFinisher}
+          finisherLoading={finisherLoading}
+          saveError={error}
+          onNew={() => goto("create")}
+          onAddBlock={() => goto("blockForm")}
+        />
+      </>;
+    } else if (view === "blockForm") {
+      body = <>
+        <TopBar title="Створити блок" onBack={() => goto(workout ? "workoutResult" : "home")} />
+        <BlockForm params={blockParams} setParams={setBlockParams} onSubmit={generateBlock} loading={blockLoading} error={blockError} />
+      </>;
+    } else if (view === "blockResult") {
+      body = <>
+        <TopBar title="Блок готовий" onBack={() => goto("blockForm")} />
+        <BlockResult block={block} canAppend={!!workout} onAppend={appendBlockToWorkout} onNew={() => goto("blockForm")} />
+      </>;
+    } else if (view === "planForm") {
+      body = <>
+        <TopBar title="План на місяць" onBack={() => goto("home")} />
+        <PlanForm onSubmit={generatePlan} loading={planLoading} error={planError} params={planParams} setParams={setPlanParams} />
+      </>;
+    } else if (view === "planResult") {
+      body = <>
+        <TopBar title="План на місяць" onBack={() => goto("home")} />
+        <PlanResult plan={plan} onNew={() => { setPlan(null); goto("planForm"); }} />
+      </>;
+    }
+  }
+
+  return (
+    <div style={{ background: "#14171A", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 70 }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+        * { box-sizing: border-box; }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input::placeholder { color: #5C6268; }
+      `}</style>
+
+      {body}
+
+      <div style={{
+        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480, background: "#1A1D20", borderTop: "1px solid #262B30",
+        display: "flex", padding: "10px 10px calc(10px + env(safe-area-inset-bottom))",
+      }}>
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => { setTab(t.key); if (t.key === "coach") setView("home"); }}
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", padding: 6 }}
+          >
+            <t.icon size={19} color={tab === t.key ? "#C6F135" : "#5C6268"} />
+            <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 10, fontWeight: 600, color: tab === t.key ? "#C6F135" : "#5C6268" }}>
+              {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+const rootEl = document.getElementById("root");
+ReactDOM.createRoot(rootEl).render(<App />);
+
+</script>
+</body>
+</html>
