@@ -302,14 +302,31 @@ function Wind(props) {
   );
 }
 
+function Folder(props) {
+  return (
+    <Icon {...props}>
+      <path d="M3.5 6.5a1 1 0 0 1 1-1H9l2 2.5h8.5a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-16a1 1 0 0 1-1-1z" />
+    </Icon>
+  );
+}
+
+function Pencil(props) {
+  return (
+    <Icon {...props}>
+      <path d="M14 4.5 19 9l-10 10H4v-5z" />
+      <path d="M12.5 6 17 10.5" />
+    </Icon>
+  );
+}
+
 
 /* ---------------------------------- data ---------------------------------- */
 
-const THEMES = ["Ноги", "Верх", "Прес", "HIIT", "Функціональне", "TRX", "Pilates", "Full Body"];
-const EQUIPMENT_OPTIONS = ["Без інвентаря", "Гантелі", "Степ", "Фітбол", "TRX", "Резинки", "Гиря", "Штанга", "Лавка", "Скакалка", "Медбол", "BOSU", "Плайо-бокс", "Слайдери", "Колесо для преса", "Драбинка"];
+const THEMES = ["Ноги", "Верх", "Прес", "HIIT", "Функціональне", "TRX", "Pilates", "Full Body", "Games"];
+const EQUIPMENT_OPTIONS = ["Без інвентаря", "Гантелі", "Степ", "Фітбол", "TRX", "Резинки", "Гиря", "Штанга", "Лавка", "Скакалка", "Медбол", "BOSU", "Плайо-бокс", "Слайдери", "Колесо для преса", "Драбинка", "Гребля", "Канати", "Байк"];
 const LEVELS = ["Початковий", "Середній", "Просунутий", "Змішаний"];
 const DURATIONS = [30, 45, 50, 55];
-const BLOCK_TYPES = ["Силовий", "Кардіо", "TRX", "Прес", "Сідниці", "Ноги", "Верх"];
+const BLOCK_TYPES = ["Силовий", "Кардіо", "TRX", "Прес", "Сідниці", "Ноги", "Верх", "Games"];
 
 const FINISHER_FORMATS = [
   { key: "EMOM", label: "EMOM", desc: "Щохвилини — нова вправа" },
@@ -319,6 +336,17 @@ const FINISHER_FORMATS = [
   { key: "Ladder", label: "Драбинка", desc: "Зростаючі/спадні повторення" },
 ];
 const FINISHER_DURATIONS = [4, 6, 8, 10, 12];
+
+const GAMES_PROTOCOLS = [
+  { key: "Circuit", label: "Круговий (Circuit)", desc: "Кілька станцій, кілька кіл поспіль" },
+  { key: "AMRAP", label: "AMRAP", desc: "Максимум кіл за весь відведений час" },
+  { key: "EMOM", label: "EMOM", desc: "Щохвилини — нова вправа" },
+  { key: "Ladder", label: "Драбина", desc: "Повторення зростають з кожним раундом" },
+  { key: "Tabata", label: "Табата", desc: "20/10 сек × 8 раундів" },
+  { key: "Relay", label: "Естафетний", desc: "Команди по черзі проходять станції наввипередки" },
+  { key: "Partner", label: "Парний формат (Partner WOD)", desc: "Один працює — другий тримає/відпочиває, тоді міняються" },
+  { key: "Pyramid", label: "Пірамідальний", desc: "Повторення зростають, тоді спадають" },
+];
 
 const EXERCISE_LIBRARY = [
   // Ноги
@@ -446,7 +474,7 @@ const EXERCISE_LIBRARY = [
   { id: "c28", name: "Ножиці-тріпотіння на BOSU", group: "Прес", eq: ["BOSU"] },
   { id: "c29", name: "Утримання кута (V-sit hold)", group: "Прес", eq: ["Без інвентаря"] },
   // HIIT / Кардіо
-  { id: "h14", name: "Хвилі канатом (battle rope)", group: "HIIT", eq: ["Без інвентаря"] },
+  { id: "h14", name: "Хвилі канатом (battle rope)", group: "HIIT", eq: ["Канати"] },
   { id: "h15", name: "Стрибки конькобіжця (skaters)", group: "HIIT", eq: ["Без інвентаря"] },
   { id: "h16", name: "Бурпі зі стрибком у довжину", group: "HIIT", eq: ["Без інвентаря"] },
   { id: "h17", name: "Тук-джамп (tuck jump)", group: "HIIT", eq: ["Без інвентаря"] },
@@ -553,6 +581,74 @@ const EXERCISE_LIBRARY = [
   { id: "p23", name: "Кобра з розворотом корпусу", group: "Pilates", eq: ["Без інвентаря"] },
   { id: "p24", name: "Розтяжка зап'ясть стоячи", group: "Pilates", eq: ["Без інвентаря"] },
   { id: "p25", name: "Глибокий випад-розтяжка (world's greatest stretch)", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "h30", name: "Гребля 500 м на час", group: "HIIT", eq: ["Гребля"] },
+  { id: "h31", name: "Інтервали на гребному тренажері 30/30", group: "HIIT", eq: ["Гребля"] },
+  { id: "h32", name: "Спринт на гребному тренажері 20 сек", group: "HIIT", eq: ["Гребля"] },
+  { id: "h33", name: "Гребля 250 м на швидкість", group: "HIIT", eq: ["Гребля"] },
+  { id: "h34", name: "Табата на гребному тренажері", group: "HIIT", eq: ["Гребля"] },
+  { id: "f27", name: "Гребля у повільному темпі (розминка)", group: "Функціональне", eq: ["Гребля"] },
+  { id: "f28", name: "Гребля з максимальною потужністю 250 м", group: "Функціональне", eq: ["Гребля"] },
+  { id: "h35", name: "Почергові хвилі канатом", group: "HIIT", eq: ["Канати"] },
+  { id: "h36", name: "Подвійні хвилі канатом швидко", group: "HIIT", eq: ["Канати"] },
+  { id: "h37", name: "Канати з присідом (wave + squat)", group: "HIIT", eq: ["Канати"] },
+  { id: "h38", name: "Слем канатом (canat slam)", group: "HIIT", eq: ["Канати"] },
+  { id: "h39", name: "Канати в сторони (lateral waves)", group: "HIIT", eq: ["Канати"] },
+  { id: "f29", name: "Кола канатом (canat circles)", group: "Функціональне", eq: ["Канати"] },
+  { id: "f30", name: "Канати з випадом назад по черзі", group: "Функціональне", eq: ["Канати"] },
+  { id: "h40", name: "Спринт на байку 20 сек", group: "HIIT", eq: ["Байк"] },
+  { id: "h41", name: "Інтервали на байку 30/30", group: "HIIT", eq: ["Байк"] },
+  { id: "h42", name: "Байк на максимальній потужності 10 сек", group: "HIIT", eq: ["Байк"] },
+  { id: "h43", name: "Табата на байку", group: "HIIT", eq: ["Байк"] },
+  { id: "f31", name: "Байк у стабільному темпі (кардіо)", group: "Функціональне", eq: ["Байк"] },
+  { id: "f32", name: "Байк 1 хв на відновлення", group: "Функціональне", eq: ["Байк"] },
+  { id: "l33", name: "Слайд-присід (розведення в сторони)", group: "Ноги", eq: ["Слайдери"] },
+  { id: "l34", name: "Присід на BOSU з випадом", group: "Ноги", eq: ["BOSU"] },
+  { id: "l35", name: "Стрибки через драбинку спритності", group: "Ноги", eq: ["Драбинка"] },
+  { id: "l36", name: "Гребля як імітація присіду-тяги", group: "Ноги", eq: ["Гребля"] },
+  { id: "l37", name: "Больгарський присід на BOSU", group: "Ноги", eq: ["BOSU", "Лавка"] },
+  { id: "l38", name: "Присід з медболом над головою", group: "Ноги", eq: ["Медбол"] },
+  { id: "l39", name: "Дзеркальні випади (mirror lunge)", group: "Ноги", eq: ["Без інвентаря"] },
+  { id: "l40", name: "Присід \"стілець\" біля стіни з медболом", group: "Ноги", eq: ["Медбол"] },
+  { id: "g29", name: "Кік-бек на слайдері назад", group: "Сідниці", eq: ["Слайдери"] },
+  { id: "g30", name: "Хіп-траст на BOSU", group: "Сідниці", eq: ["BOSU"] },
+  { id: "g31", name: "Місток з відведенням ноги і резинкою", group: "Сідниці", eq: ["Резинки"] },
+  { id: "g32", name: "Розгинання стегна з канатом на щиколотці", group: "Сідниці", eq: ["Канати"] },
+  { id: "g33", name: "Пульсуючий випад назад на слайдері", group: "Сідниці", eq: ["Слайдери"] },
+  { id: "g34", name: "Гребля з акцентом на сідниці (широкий хват)", group: "Сідниці", eq: ["Гребля"] },
+  { id: "u32", name: "Гребля на тренажері (спина)", group: "Верх", eq: ["Гребля"] },
+  { id: "u33", name: "Тяга каната до грудей (Rope face pull)", group: "Верх", eq: ["Канати"] },
+  { id: "u34", name: "Жим гантелей на слайдерах (нестабільна опора)", group: "Верх", eq: ["Слайдери", "Гантелі"] },
+  { id: "u35", name: "Розведення гантелей на BOSU", group: "Верх", eq: ["Гантелі", "BOSU"] },
+  { id: "u36", name: "Слайд-віджимання в сторони", group: "Верх", eq: ["Слайдери"] },
+  { id: "u37", name: "Кидок медбола від грудей у стіну", group: "Верх", eq: ["Медбол"] },
+  { id: "u38", name: "Тяга каната однією рукою (alternating)", group: "Верх", eq: ["Канати"] },
+  { id: "u39", name: "Пуловер з медболом лежачи", group: "Верх", eq: ["Медбол"] },
+  { id: "c30", name: "Слайд-скручування (pike slide)", group: "Прес", eq: ["Слайдери"] },
+  { id: "c31", name: "Планка на BOSU", group: "Прес", eq: ["BOSU"] },
+  { id: "c32", name: "Кидок медбола сидячи (partner slam)", group: "Прес", eq: ["Медбол"] },
+  { id: "c33", name: "Гребля-скручування (сидячи, без тренажера)", group: "Прес", eq: ["Без інвентаря"] },
+  { id: "c34", name: "Бічна планка на слайдері", group: "Прес", eq: ["Слайдери"] },
+  { id: "c35", name: "Дроворуб з медболом", group: "Прес", eq: ["Медбол"] },
+  { id: "c36", name: "Утримання планки на канаті (rope plank pull)", group: "Прес", eq: ["Канати"] },
+  { id: "h44", name: "Слайд-маунтін клаймбер", group: "HIIT", eq: ["Слайдери"] },
+  { id: "h45", name: "Стрибки по драбинці спритності (бокові)", group: "HIIT", eq: ["Драбинка"] },
+  { id: "h46", name: "Комбо гребля + берпі", group: "HIIT", eq: ["Гребля"] },
+  { id: "h47", name: "Кидки медбола на швидкість", group: "HIIT", eq: ["Медбол"] },
+  { id: "h48", name: "BOSU джампінг джек", group: "HIIT", eq: ["BOSU"] },
+  { id: "h49", name: "Канат + стрибок на місці (комбо)", group: "HIIT", eq: ["Канати"] },
+  { id: "f34", name: "Комплекс гребля-присід-жим", group: "Функціональне", eq: ["Гребля", "Гантелі"] },
+  { id: "f35", name: "Перенесення медбола наввипередки", group: "Функціональне", eq: ["Медбол"] },
+  { id: "f36", name: "Драбинка спритності + випад", group: "Функціональне", eq: ["Драбинка"] },
+  { id: "f37", name: "Штовхання слайдера вперед (sled push imitation)", group: "Функціональне", eq: ["Слайдери"] },
+  { id: "f38", name: "BOSU перенесення ваги (з боку в бік)", group: "Функціональне", eq: ["BOSU", "Гантелі"] },
+  { id: "t25", name: "TRX row + присід (комбо)", group: "TRX", eq: ["TRX"] },
+  { id: "t26", name: "TRX випад з ротацією корпусу", group: "TRX", eq: ["TRX"] },
+  { id: "t27", name: "TRX атлетичний стрибок", group: "TRX", eq: ["TRX"] },
+  { id: "t28", name: "TRX планка з розведенням ніг", group: "TRX", eq: ["TRX"] },
+  { id: "p27", name: "Розтяжка на BOSU (баланс + дихання)", group: "Pilates", eq: ["BOSU"] },
+  { id: "p28", name: "Пілатес \"пила\" з розворотом", group: "Pilates", eq: ["Без інвентаря"] },
+  { id: "p29", name: "Розтяжка стегна на слайдері", group: "Pilates", eq: ["Слайдери"] },
+  { id: "p30", name: "Дихання по колу лежачи на фітболі", group: "Pilates", eq: ["Фітбол"] },
 ];
 
 const MUSCLE_GROUPS = [...new Set(EXERCISE_LIBRARY.map(e => e.group))];
@@ -634,6 +730,7 @@ const THEME_GROUPS = {
   "TRX": ["TRX"],
   "Pilates": ["Pilates", "Прес"],
   "Full Body": ["Ноги", "Верх", "Прес", "Функціональне", "Сідниці"],
+  "Games": ["Функціональне", "HIIT", "Ноги", "Верх", "Прес", "Сідниці"],
 };
 
 const WARMUP_POOL = [
@@ -707,10 +804,32 @@ function pickDiverseFromPools(pools, n, avoidFirstPattern = null) {
   return chosen;
 }
 
-function levelSetsReps(level) {
+const WORK_TIME_SECONDS = 45;
+
+function levelSetsReps(level, format = "reps") {
+  if (format === "time") {
+    const sets = level === "Початковий" ? 2 : level === "Просунутий" ? 4 : 3;
+    return { sets, reps: `${WORK_TIME_SECONDS} сек` };
+  }
   if (level === "Початковий") return { sets: 2, reps: "12-15" };
   if (level === "Просунутий") return { sets: 4, reps: "10-12" };
   return { sets: 3, reps: "12-15" };
+}
+
+// Decides which format a given block uses. "mixed" alternates block-by-block
+// so the workout genuinely contains both time-based and rep-based blocks.
+function blockFormatFor(workFormat, blockIndex) {
+  if (workFormat === "time") return "time";
+  if (workFormat === "mixed") return blockIndex % 2 === 0 ? "reps" : "time";
+  return "reps";
+}
+
+// Infers whether an existing block is reps- or time-based by inspecting its
+// exercises, so a replacement exercise can match the same format.
+function inferBlockValueFormat(block, fallback = "reps") {
+  const withValue = block?.exercises?.find((e) => e && e.reps);
+  if (!withValue) return fallback;
+  return /сек/.test(withValue.reps) ? "time" : "reps";
 }
 
 function equipmentPool(equipment) {
@@ -734,11 +853,17 @@ const PATTERN_LABELS_UK = {
 // within a block, and across blocks, follow a logical structure rather than
 // a random mix.
 function getBlockFocuses(theme, count) {
-  const groups = THEME_GROUPS[theme] || ["Full Body"];
-  if (groups.length > 1) {
+  const baseGroups = THEME_GROUPS[theme] || ["Full Body"];
+  if (baseGroups.length > 1) {
+    // Rotate the group order to a random starting point each time. Without
+    // this, a fixed order + fewer blocks than groups (e.g. 2-3 blocks vs 5
+    // groups for Full Body) always lands on the same first groups (Ноги,
+    // Верх) and never reaches Прес, Функціональне, Сідниці.
+    const offset = Math.floor(Math.random() * baseGroups.length);
+    const groups = baseGroups.map((_, i) => baseGroups[(i + offset) % baseGroups.length]);
     return Array.from({ length: count }, (_, i) => groups[i % groups.length]);
   }
-  const group = groups[0];
+  const group = baseGroups[0];
   const patternsPresent = [...new Set(EXERCISE_LIBRARY.filter((e) => e.group === group).map((e) => detectPattern(e.name, e.group)))];
   const order = patternsPresent.length ? patternsPresent : ["full"];
   return Array.from({ length: count }, (_, i) => ({ group, pattern: order[i % order.length] }));
@@ -775,13 +900,18 @@ function inferBlockFocus(blockName, theme) {
   return null;
 }
 
-function toWorkoutExercise(libEx, level) {
-  const { sets, reps } = levelSetsReps(level);
+function toWorkoutExercise(libEx, level, format = "reps") {
+  const { sets, reps } = levelSetsReps(level, format);
   return { name: libEx.name, sets, reps, note: libEx.group };
 }
 
 function localWorkout(params) {
-  const c = exerciseCounts(params.duration);
+  const c = exerciseCounts(params.duration, estimateFinisherMinutes(params));
+
+  if (params.theme === "Games") {
+    return localGamesWorkout(params, c);
+  }
+
   const focuses = getBlockFocuses(params.theme, c.blocks);
   const used = [];
   const blocks = [];
@@ -795,9 +925,10 @@ function localWorkout(params) {
     const chosen = pickDiverseFromPools([focusPool, groupPool, themePool], c.perBlock, lastPattern);
     chosen.forEach((e) => used.push(e.name));
     if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+    const blockFormat = blockFormatFor(params.workFormat, b);
     blocks.push({
       name: `Блок ${b + 1}: ${focusLabel(focus)}`,
-      exercises: chosen.map((e) => toWorkoutExercise(e, params.level)),
+      exercises: chosen.map((e) => toWorkoutExercise(e, params.level, blockFormat)),
     });
   }
   return {
@@ -808,7 +939,98 @@ function localWorkout(params) {
   };
 }
 
-function localReplacement(theme, level, equipment, usedNames, blockFocus = null, avoidPatterns = []) {
+// Games theme: Variant A ("Класична") uses a couple of large team-relay
+// stations instead of many small focused blocks. Variant B ("Блоки") reuses
+// the normal per-focus block structure, just labeled as competitive stations.
+function localGamesWorkout(params, c) {
+  const groups = THEME_GROUPS["Games"];
+  const used = [];
+  const level = params.level;
+  const repsBase = level === "Просунутий" ? 15 : level === "Початковий" ? 10 : 12;
+  const protocol = params.gamesProtocol || "Circuit";
+  let blocks = [];
+  let protocolInfo = null;
+
+  const pickFormatted = (n, avoidPattern = null) => {
+    const p = filterLibrary(groups, params.equipment, used);
+    const chosen = pickDiverseFromPools([p], n, avoidPattern);
+    chosen.forEach((e) => used.push(e.name));
+    return chosen;
+  };
+
+  if (protocol === "Circuit") {
+    const stationCount = Math.min(4, Math.max(2, c.blocks));
+    const perStation = Math.max(3, Math.round((c.blocks * c.perBlock) / stationCount));
+    const rounds = params.duration <= 30 ? 2 : params.duration >= 50 ? 4 : 3;
+    let lastPattern = null;
+    for (let s = 0; s < stationCount; s++) {
+      const chosen = pickFormatted(perStation, lastPattern);
+      if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+      const fmt = blockFormatFor(params.workFormat, s);
+      const { reps } = levelSetsReps(level, fmt);
+      blocks.push({ name: `Станція ${s + 1}`, exercises: chosen.map((e) => ({ name: e.name, sets: null, reps, note: e.group })) });
+    }
+    protocolInfo = { label: "Circuit", note: `${rounds} кола по всіх станціях` };
+  } else if (protocol === "AMRAP") {
+    const cap = Math.max(8, params.duration - 10);
+    const n = Math.min(6, Math.max(4, c.blocks * c.perBlock));
+    const chosen = pickFormatted(n);
+    const fmt = params.workFormat === "time" ? "time" : "reps";
+    const { reps } = levelSetsReps(level, fmt);
+    blocks = [{ name: "AMRAP-коло", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps, note: e.group })) }];
+    protocolInfo = { label: "AMRAP", note: `${cap} хв — максимум повних кіл` };
+  } else if (protocol === "EMOM") {
+    const mins = Math.max(8, Math.min(20, params.duration - 15));
+    const n = Math.min(mins, Math.max(4, c.blocks * c.perBlock));
+    const chosen = pickFormatted(n);
+    blocks = [{ name: `EMOM ${mins} хв`, exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) }];
+    protocolInfo = { label: "EMOM", note: `${mins} хв — щохвилини нова вправа` };
+  } else if (protocol === "Ladder") {
+    const chosen = pickFormatted(3);
+    blocks = [{ name: "Драбина", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10", note: e.group })) }];
+    protocolInfo = { label: "Драбина", note: "Кожен раунд — більше повторень" };
+  } else if (protocol === "Tabata") {
+    const tabataRounds = params.duration <= 30 ? 1 : params.duration >= 50 ? 3 : 2;
+    let lastPattern = null;
+    for (let t = 0; t < tabataRounds; t++) {
+      const chosen = pickFormatted(2, lastPattern);
+      if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+      blocks.push({ name: `Табата ${t + 1}`, exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "макс", note: e.group })) });
+    }
+    protocolInfo = { label: "Табата", note: "20 сек робота / 10 сек відпочинок × 8 раундів" };
+  } else if (protocol === "Relay") {
+    const stationCount = Math.min(4, Math.max(2, c.blocks));
+    const perStation = Math.max(2, Math.round((c.blocks * c.perBlock) / stationCount));
+    let lastPattern = null;
+    for (let s = 0; s < stationCount; s++) {
+      const chosen = pickFormatted(perStation, lastPattern);
+      if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+      blocks.push({ name: `Естафета ${s + 1}`, exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) });
+    }
+    protocolInfo = { label: "Естафетний", note: "Команди по черзі — хто швидше пройде всі етапи" };
+  } else if (protocol === "Partner") {
+    const n = Math.max(4, Math.min(6, c.blocks * c.perBlock));
+    const chosen = pickFormatted(n);
+    const fmt = params.workFormat === "time" ? "time" : "reps";
+    const { sets, reps } = levelSetsReps(level, fmt);
+    blocks = [{ name: "Партнерський блок", exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })) }];
+    protocolInfo = { label: "Partner WOD", note: "Один виконує, другий тримає/відпочиває — тоді міняються" };
+  } else {
+    const chosen = pickFormatted(3);
+    blocks = [{ name: "Піраміда", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10-8-6-4-2", note: e.group })) }];
+    protocolInfo = { label: "Пірамідальний", note: "Повторення зростають, тоді спадають" };
+  }
+
+  return {
+    title: `Games · ${GAMES_PROTOCOLS.find((p) => p.key === protocol)?.label || protocol} · ${params.duration} хв`,
+    protocol: protocolInfo,
+    warmup: shufflePick(WARMUP_POOL, c.warmup),
+    blocks,
+    cooldown: shufflePick(COOLDOWN_POOL, c.cooldown),
+  };
+}
+
+function localReplacement(theme, level, equipment, usedNames, blockFocus = null, avoidPatterns = [], format = "reps") {
   const focus = blockFocus || (THEME_GROUPS[theme] || ["Full Body"])[0];
   const groupOnly = typeof focus === "string" ? focus : focus.group;
   const focusPool = filterLibraryByFocus(focus, equipment, usedNames);
@@ -820,24 +1042,76 @@ function localReplacement(theme, level, equipment, usedNames, blockFocus = null,
     const preferred = avoidPatterns.length ? pool.filter((e) => !avoidPatterns.includes(detectPattern(e.name, e.group))) : pool;
     if (preferred.length) {
       const pick = preferred[Math.floor(Math.random() * preferred.length)];
-      return toWorkoutExercise(pick, level);
+      return toWorkoutExercise(pick, level, format);
     }
   }
   for (const pool of tiers) {
     if (pool.length) {
       const pick = pool[Math.floor(Math.random() * pool.length)];
-      return toWorkoutExercise(pick, level);
+      return toWorkoutExercise(pick, level, format);
     }
   }
-  return { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+  return format === "time"
+    ? { name: "Планка класична", sets: 3, reps: `${WORK_TIME_SECONDS} сек`, note: "Прес" }
+    : { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+}
+
+const BLOCK_TYPE_GROUP_ALIAS = {
+  "Кардіо": ["HIIT"],
+  "Силовий": ["Ноги", "Верх", "Сідниці", "Функціональне"],
+};
+
+function resolveBlockTypeGroups(blockType) {
+  return BLOCK_TYPE_GROUP_ALIAS[blockType] || THEME_GROUPS[blockType] || [blockType];
 }
 
 function localBlock(blockType, level, equipment, count, usedNames) {
-  const themeKey = THEME_GROUPS[blockType] ? blockType : (BLOCK_TYPES.includes(blockType) ? blockType : "Full Body");
-  const groups = THEME_GROUPS[themeKey] || [blockType];
+  const groups = resolveBlockTypeGroups(blockType);
   const available = filterLibrary(groups, equipment, usedNames);
   const chosen = shufflePick(available.length ? available : filterLibrary(groups, equipment), count);
   return { name: `Блок: ${blockType}`, exercises: chosen.map((e) => toWorkoutExercise(e, level)) };
+}
+
+// Builds a single Games-protocol block for the standalone block creator
+// (unlike the full-workout version, this always returns exactly one block).
+function localGamesBlock(protocol, level, equipment, count, usedNames) {
+  const groups = THEME_GROUPS["Games"];
+  const pool = filterLibrary(groups, equipment, usedNames);
+  const repsBase = level === "Просунутий" ? 15 : level === "Початковий" ? 10 : 12;
+  const pick = (n) => pickDiverseFromPools([pool], n);
+
+  if (protocol === "AMRAP") {
+    const chosen = pick(count);
+    return { name: "Games: AMRAP", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) };
+  }
+  if (protocol === "EMOM") {
+    const chosen = pick(count);
+    return { name: "Games: EMOM", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) };
+  }
+  if (protocol === "Ladder") {
+    const chosen = pick(Math.min(3, count));
+    return { name: "Games: Драбина", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10", note: e.group })) };
+  }
+  if (protocol === "Tabata") {
+    const chosen = pick(2);
+    return { name: "Games: Табата", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "макс", note: e.group })) };
+  }
+  if (protocol === "Pyramid") {
+    const chosen = pick(Math.min(3, count));
+    return { name: "Games: Піраміда", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10-8-6-4-2", note: e.group })) };
+  }
+  if (protocol === "Partner") {
+    const chosen = pick(count);
+    const { sets, reps } = levelSetsReps(level, "reps");
+    return { name: "Games: Партнерський блок", exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })) };
+  }
+  if (protocol === "Relay") {
+    const chosen = pick(count);
+    return { name: "Games: Естафета", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) };
+  }
+  // Circuit (default)
+  const chosen = pick(count);
+  return { name: "Games: Станція (Circuit)", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) };
 }
 
 function localPlanWeek(themesPool, sessionsPerWeek, weekNum) {
@@ -1172,12 +1446,28 @@ async function callClaude(system, user, retry = true) {
   }
 }
 
-function exerciseCounts(duration) {
-  if (duration === 30) return { warmup: 2, blocks: 2, perBlock: 2, cooldown: 2 };
-  if (duration === 45) return { warmup: 2, blocks: 3, perBlock: 2, cooldown: 2 };
-  if (duration === 50) return { warmup: 2, blocks: 3, perBlock: 3, cooldown: 2 };
-  if (duration === 55) return { warmup: 2, blocks: 3, perBlock: 3, cooldown: 2 };
-  return { warmup: 2, blocks: 3, perBlock: 2, cooldown: 2 };
+// Estimates how many minutes a chosen finisher will eat into the session,
+// so block count can account for it rather than ignoring it.
+function estimateFinisherMinutes(params) {
+  if (!params?.finisher) return 0;
+  if (params.finisher === "EMOM" || params.finisher === "AMRAP") return params.finisherDuration || 10;
+  if (params.finisher === "Tabata") return 4;
+  return 6; // For Time / Ladder — rough estimate, no fixed duration chosen by user
+}
+
+// Blocks are no longer hard-coded to always be 3 — the count (2-5) and
+// exercises-per-block are derived from the actual time budget: total
+// duration minus warmup, cooldown, and any finisher, divided by a rough
+// per-exercise time (work + rest across its sets).
+function exerciseCounts(duration, finisherMinutes = 0) {
+  const warmup = duration <= 30 ? 2 : 3;
+  const cooldown = duration <= 30 ? 2 : 3;
+  const perExerciseMin = 4; // rough average incl. rest across ~3 sets
+  const mainMinutes = Math.max(8, duration - warmup - cooldown - finisherMinutes);
+  const totalExercises = Math.max(4, Math.round(mainMinutes / perExerciseMin));
+  let blocks = Math.max(2, Math.min(5, Math.round(totalExercises / 3)));
+  const perBlock = Math.max(2, Math.min(4, Math.round(totalExercises / blocks)));
+  return { warmup, blocks, perBlock, cooldown };
 }
 
 const SYSTEM_PROMPT = "Ти — методист групових фітнес-тренувань в Україні. Відповідай ЛИШЕ валідним компактним JSON без зайвих пробілів, без пояснень, без markdown-огорож. Мова — виключно українська. Назви вправ короткі (2-4 слова), поле note необов'язкове й максимум 3 слова. Ніколи не перевищуй запитану кількість елементів.";
@@ -1268,6 +1558,7 @@ function HomeScreen({ goto }) {
     { key: "create", title: "Створити тренування", desc: "Повний план під параметри групи", icon: Dumbbell },
     { key: "blockForm", title: "Створити блок", desc: "Силовий, кардіо, TRX, прес, сідниці…", icon: Target },
     { key: "planForm", title: "План на місяць", desc: "Ротація тем без повторів", icon: CalendarDays },
+    { key: "myFolders", title: "Мої тренування", desc: "Власні записи по папках", icon: Folder },
     { key: "savedList", title: "Збережені тренування", desc: "Раніше згенеровані плани", icon: Save },
     { key: "library", title: "Бібліотека вправ", desc: "Фільтри за м'язами й інвентарем", icon: LibraryIcon },
   ];
@@ -1334,6 +1625,18 @@ function ParamsForm({ params, setParams, onSubmit, loading, error, submitLabel, 
         ))}
       </div>
 
+      <SectionLabel icon={RefreshCw}>Формат роботи</SectionLabel>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Chip active={params.workFormat === "reps"} onClick={() => setParams((p) => ({ ...p, workFormat: "reps" }))}>На повторення</Chip>
+        <Chip active={params.workFormat === "time"} onClick={() => setParams((p) => ({ ...p, workFormat: "time" }))}>На час</Chip>
+        <Chip active={params.workFormat === "mixed"} onClick={() => setParams((p) => ({ ...p, workFormat: "mixed" }))}>Змішаний</Chip>
+      </div>
+      {params.workFormat !== "reps" && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 8 }}>
+          {params.workFormat === "time" ? `Усі вправи по ${WORK_TIME_SECONDS} сек роботи` : `Блоки чергуються: частина на повторення, частина по ${WORK_TIME_SECONDS} сек`}
+        </div>
+      )}
+
       <SectionLabel icon={Users}>Кількість людей</SectionLabel>
       <div style={{ display: "flex", alignItems: "center", gap: 16, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "10px 16px", width: "fit-content" }}>
         <button onClick={() => setParams((p) => ({ ...p, people: Math.max(1, p.people - 1) }))} style={{ background: "#262B30", width: 32, height: 32, borderRadius: 8, color: "#F3F4F1", fontSize: 18, fontWeight: 700 }}>−</button>
@@ -1362,6 +1665,20 @@ function ParamsForm({ params, setParams, onSubmit, loading, error, submitLabel, 
             {THEMES.map((t) => (
               <Chip key={t} active={params.theme === t} onClick={() => setParams((p) => ({ ...p, theme: t }))}>{t}</Chip>
             ))}
+          </div>
+        </>
+      )}
+
+      {showTheme && params.theme === "Games" && (
+        <>
+          <SectionLabel icon={Shuffle}>Протокол Games</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {GAMES_PROTOCOLS.map((p) => (
+              <Chip key={p.key} active={params.gamesProtocol === p.key} onClick={() => setParams((pr) => ({ ...pr, gamesProtocol: p.key }))}>{p.label}</Chip>
+            ))}
+          </div>
+          <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 8 }}>
+            {GAMES_PROTOCOLS.find((p) => p.key === params.gamesProtocol)?.desc}
           </div>
         </>
       )}
@@ -1429,7 +1746,7 @@ function ExerciseRow({ ex, onReplace, replacing, isOpen, tech, onToggleTechnique
           </div>
         </button>
         <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 16, color: "#C6F135", marginRight: 12, whiteSpace: "nowrap" }}>
-          {ex.sets}×{ex.reps}
+          {ex.sets ? `${ex.sets}×${ex.reps}` : ex.reps}
         </div>
         <button onClick={onReplace} disabled={replacing} style={{ background: "#262B30", borderRadius: 10, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {replacing ? <Loader2 size={15} color="#C6F135" className="spin" /> : <RefreshCw size={15} color="#C7CCD1" />}
@@ -1485,7 +1802,7 @@ function FinisherBlock({ finisher, onRegenerate, regenerating }) {
   );
 }
 
-function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew, onAddBlock, saved, usedFallback, onRegenerateFinisher, finisherLoading, saveError }) {
+function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew, onAddBlock, saved, usedFallback, onRegenerateFinisher, finisherLoading, saveError, onRegenerateBlock, blockLoadingIndex }) {
   const { expandedId, cache: techCache, toggleExpand } = useTechniqueLookup();
   if (!workout) return null;
   return (
@@ -1494,6 +1811,18 @@ function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew
         {params.theme} · {params.duration} хв · {params.people} людей
       </div>
       <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "#F3F4F1", margin: "4px 0 0" }}>{workout.title}</h2>
+      {workout.protocol && (
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 7, marginTop: 8, padding: "6px 12px", borderRadius: 999,
+          background: "#4FA8E022", border: "1px solid #4FA8E055",
+        }}>
+          <Shuffle size={13} color="#4FA8E0" />
+          <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 700, color: "#4FA8E0" }}>{workout.protocol.label}</span>
+          {workout.protocol.note && (
+            <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8FC6F0" }}>· {workout.protocol.note}</span>
+          )}
+        </div>
+      )}
       {usedFallback && (
         <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8D949B", marginTop: 4 }}>
           ⚡ Згенеровано локально (AI зараз недоступний)
@@ -1510,9 +1839,18 @@ function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew
 
       {workout.blocks?.map((block, bi) => (
         <div key={bi}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 24, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 24, marginBottom: 8 }}>
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: "#C6F135" }}>{String(bi + 1).padStart(2, "0")}</span>
-            <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>{block.name}</span>
+            <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1", flex: 1 }}>{block.name}</span>
+            <button
+              onClick={() => onRegenerateBlock(bi)}
+              disabled={blockLoadingIndex === bi}
+              title="Замінити весь блок"
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "#262B30", borderRadius: 10, padding: "6px 10px", flexShrink: 0 }}
+            >
+              {blockLoadingIndex === bi ? <Loader2 size={13} color="#C6F135" className="spin" /> : <RefreshCw size={13} color="#C7CCD1" />}
+              <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, color: "#C7CCD1" }}>Блок</span>
+            </button>
           </div>
           {block.exercises?.map((ex, ei) => {
             const rowId = `${bi}-${ei}`;
@@ -1571,6 +1909,20 @@ function BlockForm({ onSubmit, loading, error, params, setParams }) {
         ))}
       </div>
 
+      {params.blockType === "Games" && (
+        <>
+          <SectionLabel icon={Shuffle}>Протокол Games</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {GAMES_PROTOCOLS.map((p) => (
+              <Chip key={p.key} active={params.gamesProtocol === p.key} onClick={() => setParams((pr) => ({ ...pr, gamesProtocol: p.key }))}>{p.label}</Chip>
+            ))}
+          </div>
+          <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8D949B", marginTop: 8 }}>
+            {GAMES_PROTOCOLS.find((p) => p.key === params.gamesProtocol)?.desc}
+          </div>
+        </>
+      )}
+
       <SectionLabel icon={Clock}>Тривалість блоку</SectionLabel>
       <div style={{ display: "flex", gap: 8 }}>
         {[8, 12, 16, 20].map((d) => (
@@ -1614,12 +1966,23 @@ function BlockForm({ onSubmit, loading, error, params, setParams }) {
   );
 }
 
-function BlockResult({ block, onNew, onAppend, canAppend }) {
+function BlockResult({ block, onNew, onAppend, canAppend, onReplace, replacingIndex }) {
+  const { expandedId, cache: techCache, toggleExpand } = useTechniqueLookup();
   if (!block) return null;
   return (
     <div style={{ padding: "8px 20px 40px" }}>
       <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: "#F3F4F1", margin: 0 }}>{block.name}</h2>
-      {block.exercises?.map((ex, i) => <ExerciseRow key={i} ex={ex} onReplace={() => {}} replacing={false} />)}
+      {block.exercises?.map((ex, i) => (
+        <ExerciseRow
+          key={i}
+          ex={ex}
+          onReplace={() => onReplace(i)}
+          replacing={replacingIndex === i}
+          isOpen={expandedId === i}
+          tech={techCache[i]}
+          onToggleTechnique={() => toggleExpand(i, ex.name, ex.note && MUSCLE_GROUPS.includes(ex.note) ? ex.note : null)}
+        />
+      ))}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 24 }}>
         {canAppend && <BigButton onClick={onAppend}><Plus size={16} /> Додати до поточного тренування</BigButton>}
         <BigButton onClick={onNew} variant="ghost">Створити інший блок</BigButton>
@@ -1746,6 +2109,337 @@ function SavedListScreen({ savedWorkouts, onOpen, onDelete }) {
   );
 }
 
+/* ------------------------------ My Workouts (folders) ------------------------------ */
+
+function FoldersScreen({ folders, workoutCounts, sortMode, setSortMode, onOpenFolder, onCreateFolder }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+
+  const sorted = [...folders].sort((a, b) => {
+    if (sortMode === "name") return a.name.localeCompare(b.name, "uk");
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreateFolder(trimmed);
+    setName("");
+    setAdding(false);
+  };
+
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>↕ За назвою</Chip>
+        <Chip active={sortMode === "date"} onClick={() => setSortMode("date")}>За датою</Chip>
+      </div>
+
+      {sorted.length === 0 && !adding && (
+        <div style={{ textAlign: "center", padding: "30px 0", fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#8D949B" }}>
+          Ще немає жодної папки — створи першу, наприклад «Full Body».
+        </div>
+      )}
+
+      {sorted.map((f) => (
+        <button
+          key={f.id}
+          onClick={() => onOpenFolder(f)}
+          style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "#1D2125", border: "1px solid #262B30", borderRadius: 14, padding: "13px 14px", marginBottom: 10, textAlign: "left" }}
+        >
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: "#C6F13522", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Folder size={18} color="#C6F135" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>{f.name}</div>
+            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8D949B", marginTop: 2 }}>
+              {workoutCounts[f.id] || 0} тренувань
+            </div>
+          </div>
+          <ChevronRight size={16} color="#5C6268" />
+        </button>
+      ))}
+
+      {adding ? (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            placeholder="Назва папки…"
+            style={{ flex: 1, background: "#1D2125", border: "1px solid #2C3237", borderRadius: 12, padding: "12px 14px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 14 }}
+          />
+          <button onClick={submit} style={{ background: "#C6F135", borderRadius: 12, padding: "0 18px", fontWeight: 700, color: "#14171A" }}>OK</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          style={{ width: "100%", border: "1px dashed #3a4046", borderRadius: 14, padding: 14, textAlign: "center", color: "#8D949B", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
+        >
+          + Нова папка
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FolderDetailScreen({ folder, workouts, sortMode, setSortMode, onOpenWorkout, onAddWorkout }) {
+  const sorted = [...workouts].sort((a, b) => {
+    if (sortMode === "name") return a.title.localeCompare(b.title, "uk");
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>↕ За назвою</Chip>
+        <Chip active={sortMode === "date"} onClick={() => setSortMode("date")}>За датою</Chip>
+      </div>
+
+      {sorted.length === 0 && (
+        <div style={{ textAlign: "center", padding: "20px 0 30px", fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#8D949B" }}>
+          Тут поки порожньо — додай своє перше тренування.
+        </div>
+      )}
+
+      {sorted.map((w) => {
+        const date = new Date(w.createdAt);
+        const dateStr = date.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+        return (
+          <button
+            key={w.id}
+            onClick={() => onOpenWorkout(w)}
+            style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", background: "#1D2125", border: "1px solid #262B30", borderRadius: 14, padding: "13px 14px", marginBottom: 10, textAlign: "left" }}
+          >
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "#C6F13522", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Dumbbell size={17} color="#C6F135" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>{w.title}</div>
+              <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8D949B", marginTop: 2 }}>{dateStr}</div>
+            </div>
+            <ChevronRight size={16} color="#5C6268" />
+          </button>
+        );
+      })}
+
+      <button
+        onClick={onAddWorkout}
+        style={{ width: "100%", border: "1px dashed #3a4046", borderRadius: 14, padding: 14, textAlign: "center", color: "#C6F135", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13, marginTop: 4 }}
+      >
+        + Додати тренування
+      </button>
+    </div>
+  );
+}
+
+function newExercise() {
+  return { name: "", valueType: "reps", value: "", sets: "3" };
+}
+function newBlock(index) {
+  return { name: `Блок ${index + 1}: `, format: "sets", rounds: 3, exercises: [newExercise()] };
+}
+function newCustomDraft(folderId) {
+  return { id: null, folderId, title: "", mode: "structured", freeformText: "", blocks: [newBlock(0)] };
+}
+
+function CustomWorkoutForm({ draft, setDraft, folders, onSave, onCancel }) {
+  const updateBlock = (bi, patch) => {
+    setDraft((d) => {
+      const blocks = [...d.blocks];
+      blocks[bi] = { ...blocks[bi], ...patch };
+      return { ...d, blocks };
+    });
+  };
+  const updateExercise = (bi, ei, patch) => {
+    setDraft((d) => {
+      const blocks = d.blocks.map((b, i) => {
+        if (i !== bi) return b;
+        const exercises = b.exercises.map((ex, j) => (j === ei ? { ...ex, ...patch } : ex));
+        return { ...b, exercises };
+      });
+      return { ...d, blocks };
+    });
+  };
+  const addExercise = (bi) => setDraft((d) => {
+    const blocks = d.blocks.map((b, i) => (i === bi ? { ...b, exercises: [...b.exercises, newExercise()] } : b));
+    return { ...d, blocks };
+  });
+  const removeExercise = (bi, ei) => setDraft((d) => {
+    const blocks = d.blocks.map((b, i) => (i === bi ? { ...b, exercises: b.exercises.filter((_, j) => j !== ei) } : b));
+    return { ...d, blocks };
+  });
+  const addBlock = () => setDraft((d) => ({ ...d, blocks: [...d.blocks, newBlock(d.blocks.length)] }));
+  const removeBlock = (bi) => setDraft((d) => ({ ...d, blocks: d.blocks.filter((_, i) => i !== bi) }));
+
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <SectionLabel icon={Pencil}>Назва тренування</SectionLabel>
+      <input
+        value={draft.title}
+        onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+        placeholder="Наприклад: Клубна версія №2"
+        style={{ width: "100%", background: "#1D2125", border: "1px solid #2C3237", borderRadius: 12, padding: "12px 14px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 14 }}
+      />
+
+      <SectionLabel icon={Folder}>Папка</SectionLabel>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {folders.map((f) => (
+          <Chip key={f.id} active={draft.folderId === f.id} onClick={() => setDraft((d) => ({ ...d, folderId: f.id }))}>{f.name}</Chip>
+        ))}
+      </div>
+
+      {draft.mode === "freeform" ? (
+        <>
+          <SectionLabel icon={Pencil}>Нотатки / вправи (довільний текст)</SectionLabel>
+          <textarea
+            rows={10}
+            value={draft.freeformText}
+            onChange={(e) => setDraft((d) => ({ ...d, freeformText: e.target.value }))}
+            placeholder={"Пиши як завгодно, наприклад:\nБлок 1: Присід 3x12, Випади 3x12\nФінішер: AMRAP 8 хв — бурпі, планка"}
+            style={{ width: "100%", background: "#1D2125", border: "1px solid #2C3237", borderRadius: 12, padding: "12px 14px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 13, resize: "vertical" }}
+          />
+        </>
+      ) : (
+        <>
+          <SectionLabel icon={Layers}>Блоки вправ</SectionLabel>
+          {draft.blocks.map((block, bi) => (
+            <div key={bi} style={{ background: "#1D2125", border: "1px solid #262B30", borderRadius: 14, padding: 12, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "#C6F135" }}>{String(bi + 1).padStart(2, "0")}</span>
+                <input
+                  value={block.name}
+                  onChange={(e) => updateBlock(bi, { name: e.target.value })}
+                  placeholder="Блок N: своя назва…"
+                  style={{ flex: 1, background: "#262B30", border: "1px solid #333", borderRadius: 8, padding: "7px 10px", color: "#F3F4F1", fontWeight: 700, fontSize: 13, fontFamily: "'Inter',sans-serif", minWidth: 0 }}
+                />
+                {draft.blocks.length > 1 && (
+                  <button onClick={() => removeBlock(bi)} style={{ color: "#5C6268", flexShrink: 0 }}>✕</button>
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <Chip active={block.format === "sets"} onClick={() => updateBlock(bi, { format: "sets" })}>Підходи на вправу</Chip>
+                <Chip active={block.format === "rounds"} onClick={() => updateBlock(bi, { format: "rounds" })}>Кола</Chip>
+              </div>
+
+              {block.format === "rounds" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#8D949B", fontWeight: 700, textTransform: "uppercase" }}>Кількість кіл</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#262B30", borderRadius: 8, padding: "3px 6px" }}>
+                    <button onClick={() => updateBlock(bi, { rounds: Math.max(2, (block.rounds || 3) - 1) })} style={{ width: 22, height: 22, background: "#333", borderRadius: 6, color: "#F3F4F1" }}>−</button>
+                    <span style={{ fontFamily: "'JetBrains Mono',monospace", color: "#C6F135", fontSize: 13, minWidth: 14, textAlign: "center" }}>{block.rounds || 3}</span>
+                    <button onClick={() => updateBlock(bi, { rounds: (block.rounds || 3) + 1 })} style={{ width: 22, height: 22, background: "#333", borderRadius: 6, color: "#F3F4F1" }}>+</button>
+                  </div>
+                </div>
+              )}
+
+              {block.exercises.map((ex, ei) => (
+                <div key={ei} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: block.format === "sets" ? "1fr 44px 56px 20px" : "1fr 56px 20px", gap: 6, marginBottom: 5 }}>
+                    <input
+                      value={ex.name}
+                      onChange={(e) => updateExercise(bi, ei, { name: e.target.value })}
+                      placeholder="Назва вправи…"
+                      style={{ background: "#1D2125", border: "1px solid #2C3237", borderRadius: 8, padding: "7px 8px", color: "#F3F4F1", fontSize: 12, fontFamily: "'Inter',sans-serif", minWidth: 0 }}
+                    />
+                    {block.format === "sets" && (
+                      <input
+                        value={ex.sets}
+                        onChange={(e) => updateExercise(bi, ei, { sets: e.target.value })}
+                        placeholder="3"
+                        style={{ background: "#1D2125", border: "1px solid #2C3237", borderRadius: 8, padding: "7px 6px", color: "#F3F4F1", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono',monospace" }}
+                      />
+                    )}
+                    <input
+                      value={ex.value}
+                      onChange={(e) => updateExercise(bi, ei, { value: e.target.value })}
+                      placeholder={ex.valueType === "time" ? "40 сек" : "12-15"}
+                      style={{ background: "#1D2125", border: "1px solid #2C3237", borderRadius: 8, padding: "7px 6px", color: "#F3F4F1", fontSize: 12, textAlign: "center", fontFamily: "'JetBrains Mono',monospace" }}
+                    />
+                    <button onClick={() => removeExercise(bi, ei)} style={{ color: "#5C6268", fontSize: 13 }}>✕</button>
+                  </div>
+                  <div style={{ display: "flex", width: 130, border: "1px solid #2C3237", borderRadius: 6, overflow: "hidden" }}>
+                    <button
+                      onClick={() => updateExercise(bi, ei, { valueType: "reps" })}
+                      style={{ flex: 1, padding: "5px 2px", fontSize: 9, fontWeight: 700, background: ex.valueType === "reps" ? "#4FA8E0" : "transparent", color: ex.valueType === "reps" ? "#0c0e10" : "#8D949B" }}
+                    >
+                      # повт.
+                    </button>
+                    <button
+                      onClick={() => updateExercise(bi, ei, { valueType: "time" })}
+                      style={{ flex: 1, padding: "5px 2px", fontSize: 9, fontWeight: 700, background: ex.valueType === "time" ? "#4FA8E0" : "transparent", color: ex.valueType === "time" ? "#0c0e10" : "#8D949B" }}
+                    >
+                      ⏱ час
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => addExercise(bi)} style={{ width: "100%", fontSize: 12, color: "#8D949B", border: "1px dashed #3a4046", borderRadius: 8, padding: 7 }}>
+                + {block.format === "rounds" ? "Вправа в коло" : "Вправа"}
+              </button>
+            </div>
+          ))}
+          <button onClick={addBlock} style={{ width: "100%", fontSize: 13, fontWeight: 700, color: "#C6F135", border: "1px dashed #3a404680", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+            + Додати блок
+          </button>
+        </>
+      )}
+
+      <div style={{ marginTop: 16 }}>
+        <BigButton onClick={onSave}><Save size={16} /> Зберегти</BigButton>
+        <div style={{ marginTop: 8 }}>
+          <BigButton variant="ghost" onClick={() => setDraft((d) => ({ ...d, mode: d.mode === "freeform" ? "structured" : "freeform" }))}>
+            {draft.mode === "freeform" ? "Перемкнути на структуровані блоки" : "Перемкнути на вільний текст"}
+          </BigButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomWorkoutView({ workout, folderName, onEdit, onDelete }) {
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#C6F135", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>{folderName}</div>
+      <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 30, color: "#F3F4F1", margin: "4px 0 16px" }}>{workout.title}</h2>
+
+      {workout.mode === "freeform" ? (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: "#E7E9EA", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+          {workout.freeformText || "(порожньо)"}
+        </div>
+      ) : (
+        workout.blocks.map((block, bi) => (
+          <div key={bi} style={{ marginBottom: 18 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "#C6F135" }}>{String(bi + 1).padStart(2, "0")}</span>
+              <span style={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 14, color: "#F3F4F1" }}>{block.name}</span>
+              {block.format === "rounds" && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#4FA8E022", border: "1px solid #4FA8E055", color: "#4FA8E0", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 999 }}>
+                  🔁 {block.rounds || 3} кола
+                </span>
+              )}
+            </div>
+            {block.exercises.map((ex, ei) => (
+              <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: ei > 0 ? "1px solid #262B30" : "none" }}>
+                <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 14, color: "#F3F4F1" }}>{ex.name}</span>
+                <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 14, color: "#C6F135" }}>
+                  {block.format === "sets" ? `${ex.sets}×${ex.value}` : ex.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
+
+      <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+        <BigButton variant="ghost" onClick={onEdit}><Pencil size={16} /> Редагувати</BigButton>
+        <BigButton variant="ghost" onClick={onDelete}><Trash2 size={16} color="#FF6B57" /> Видалити</BigButton>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------- Library tab --------------------------------- */
 
 function LibraryTab() {
@@ -1855,8 +2549,8 @@ function LibraryTab() {
 
 /* ---------------------------------- App ------------------------------------ */
 
-const defaultParams = () => ({ duration: 45, people: 12, equipment: [], level: "Змішаний", theme: "Full Body", finisher: null, finisherDuration: 10 });
-const defaultBlockParams = () => ({ blockType: "Силовий", blockDuration: 12, people: 12, equipment: [], level: "Змішаний" });
+const defaultParams = () => ({ duration: 45, people: 12, equipment: [], level: "Змішаний", theme: "Full Body", finisher: null, finisherDuration: 10, workFormat: "reps", gamesProtocol: "Circuit" });
+const defaultBlockParams = () => ({ blockType: "Силовий", blockDuration: 12, people: 12, equipment: [], level: "Змішаний", gamesProtocol: "Circuit" });
 const defaultPlanParams = () => ({ sessionsPerWeek: 4, themes: [...THEMES], equipment: [], level: "Змішаний", progress: 0 });
 
 function App() {
@@ -1871,11 +2565,13 @@ function App() {
   const [savedFlag, setSavedFlag] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
   const [finisherLoading, setFinisherLoading] = useState(false);
+  const [blockLoadingIndex, setBlockLoadingIndex] = useState(null);
 
   const [blockParams, setBlockParams] = useState(defaultBlockParams());
   const [block, setBlock] = useState(null);
   const [blockLoading, setBlockLoading] = useState(false);
   const [blockError, setBlockError] = useState(null);
+  const [blockReplacingIndex, setBlockReplacingIndex] = useState(null);
 
   const [planParams, setPlanParams] = useState(defaultPlanParams());
   const [plan, setPlan] = useState(null);
@@ -1911,6 +2607,53 @@ function App() {
     setView("workoutResult");
   }, []);
 
+  /* ----- My Workouts (folders + manual entries) ----- */
+  const [folders, setFolders] = useState([]);
+  const [customWorkouts, setCustomWorkouts] = useState([]);
+  const [folderSort, setFolderSort] = useState("date");
+  const [workoutSort, setWorkoutSort] = useState("date");
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [customDraft, setCustomDraft] = useState(null);
+  const [currentCustomWorkout, setCurrentCustomWorkout] = useState(null);
+
+  const loadFoldersAndWorkouts = useCallback(async () => {
+    try {
+      const f = await storageGet("custom-folders", false);
+      setFolders(f?.value ? JSON.parse(f.value) : []);
+    } catch { setFolders([]); }
+    try {
+      const w = await storageGet("custom-workouts", false);
+      setCustomWorkouts(w?.value ? JSON.parse(w.value) : []);
+    } catch { setCustomWorkouts([]); }
+  }, []);
+
+  const createFolder = useCallback(async (name) => {
+    const folder = { id: `f${Date.now()}`, name, createdAt: new Date().toISOString() };
+    const next = [...folders, folder];
+    setFolders(next);
+    try { await storageSet("custom-folders", JSON.stringify(next), false); } catch {}
+  }, [folders]);
+
+  const saveCustomWorkout = useCallback(async () => {
+    if (!customDraft) return;
+    let next;
+    if (customDraft.id) {
+      next = customWorkouts.map((w) => (w.id === customDraft.id ? { ...customDraft } : w));
+    } else {
+      next = [...customWorkouts, { ...customDraft, id: `w${Date.now()}`, createdAt: new Date().toISOString() }];
+    }
+    setCustomWorkouts(next);
+    try { await storageSet("custom-workouts", JSON.stringify(next), false); } catch {}
+    goto("myFolderDetail");
+  }, [customDraft, customWorkouts]);
+
+  const deleteCustomWorkout = useCallback(async (id) => {
+    const next = customWorkouts.filter((w) => w.id !== id);
+    setCustomWorkouts(next);
+    try { await storageSet("custom-workouts", JSON.stringify(next), false); } catch {}
+    goto("myFolderDetail");
+  }, [customWorkouts]);
+
   const goto = (v) => {
     setError(null); setBlockError(null); setPlanError(null);
     if (v === "library") { setTab("library"); return; }
@@ -1923,23 +2666,41 @@ function App() {
   const generateWorkout = useCallback(async () => {
     setLoading(true); setError(null); setSavedFlag(false);
     try {
-      const c = exerciseCounts(params.duration);
+      const c = exerciseCounts(params.duration, estimateFinisherMinutes(params));
       const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
-      const focuses = getBlockFocuses(params.theme, c.blocks);
-      const focusLines = focuses.map((f, i) => `Блок ${i + 1}: акцент — ${focusLabel(f)}`).join("\n");
+      const isGames = params.theme === "Games";
+      const focuses = isGames ? [] : getBlockFocuses(params.theme, c.blocks);
+      const focusLines = isGames ? "" : focuses.map((f, i) => `Блок ${i + 1}: акцент — ${focusLabel(f)}`).join("\n");
+      const workFormatLine = params.workFormat === "time"
+        ? `Формат роботи: НА ЧАС. Усі вправи у всіх блоках — ${WORK_TIME_SECONDS} сек роботи замість кількості повторень (поле "reps" має містити "${WORK_TIME_SECONDS} сек").`
+        : params.workFormat === "mixed"
+        ? `Формат роботи: ЗМІШАНИЙ. Блоки чергуються: непарні блоки (1, 3, 5…) — на повторення (звичайний діапазон типу "12-15"), парні блоки (2, 4, 6…) — на час, усі вправи по ${WORK_TIME_SECONDS} сек (поле "reps" = "${WORK_TIME_SECONDS} сек"). Усередині одного блоку формат не змішувати.`
+        : `Формат роботи: на повторення (звичайний діапазон типу "12-15").`;
+      const protocolMeta = GAMES_PROTOCOLS.find((p) => p.key === params.gamesProtocol);
+      const gamesLine = !isGames ? "" : (() => {
+        const proto = params.gamesProtocol;
+        const totalEx = c.blocks * c.perBlock;
+        if (proto === "Circuit") return `Тема Games, протокол Circuit (${protocolMeta.desc}): зроби 2-4 станції ("Станція N"), кожна з кількома вправами. Додай у "title" згадку про кількість кіл (2-4 залежно від тривалості), які потрібно пройти по всіх станціях підряд.`;
+        if (proto === "AMRAP") return `Тема Games, протокол AMRAP (${protocolMeta.desc}): ОДИН блок "AMRAP-коло" з ${Math.min(6, Math.max(4, totalEx))} вправами без сталої кількості підходів (поле "sets" не потрібне або null) — команда виконує коло за колом, поки не мине ліміт часу.`;
+        if (proto === "EMOM") return `Тема Games, протокол EMOM (${protocolMeta.desc}): ОДИН блок "EMOM N хв" з вправами, що виконуються по одній щохвилини по черзі (без "sets").`;
+        if (proto === "Ladder") return `Тема Games, протокол Драбина (${protocolMeta.desc}): ОДИН блок "Драбина" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10" (без "sets").`;
+        if (proto === "Tabata") return `Тема Games, протокол Табата (${protocolMeta.desc}): 1-3 блоки "Табата N", кожен з 2 вправами, для кожної "reps" = "макс" (без "sets").`;
+        if (proto === "Relay") return `Тема Games, протокол Естафетний (${protocolMeta.desc}): 2-4 блоки "Естафета N" — команди по черзі проходять кожну станцію наввипередки, опиши елемент змагання в назвах.`;
+        if (proto === "Partner") return `Тема Games, протокол Partner WOD (${protocolMeta.desc}): ОДИН блок "Партнерський блок" з 4-6 вправами, де один партнер виконує вправу, поки другий тримає статичну позу чи відпочиває, потім міняються місцями.`;
+        return `Тема Games, протокол Пірамідальний (${protocolMeta.desc}): ОДИН блок "Піраміда" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10-8-6-4-2" (без "sets").`;
+      })();
       const userPrompt = `Склади групове тренування.
 Тривалість: ${params.duration} хв
 Кількість людей: ${params.people}
 Обладнання: ${eqStr}
 Рівень групи: ${params.level}
 Тема: ${params.theme}
+${workFormatLine}
+${gamesLine}
 
-Орієнтовний акцент по блоках (можна відхилятись, це не жорстка вимога):
-${focusLines}
-Розминка — ${c.warmup} вправи, заминка — ${c.cooldown} вправи.
+${isGames ? "" : `Орієнтовний акцент по блоках (можна відхилятись, це не жорстка вимога):\n${focusLines}\n`}Розминка — ${c.warmup} вправи, заминка — ${c.cooldown} вправи.
 ВАЖЛИВО: ніколи не став поруч (в межах одного блоку чи на стику блоків) дві вправи одного типу руху — наприклад два присіди, два жими лежачи, дві планки поспіль. Чергуй типи рухів (присід / тазостегновий нахил / жим / тяга / кор / вибухові) для різноманітності. Якщо в межах акценту блоку бракує різних типів рухів — краще взяти вправу із суміжної м'язової групи цієї ж теми, ніж повторити той самий тип руху.
-Назви блоків формату "Блок N: <акцент як вказано вище>".
-Формат JSON (без пробілів, лише ці поля):
+${isGames ? "" : 'Назви блоків формату "Блок N: <акцент як вказано вище>".\n'}Формат JSON (без пробілів, лише ці поля):
 {"title":"...","warmup":[{"name":"...","dur":"60 сек"}],"blocks":[{"name":"Блок 1: ...","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}],"cooldown":[{"name":"...","dur":"60 сек"}]}`;
       let result, fallback = false;
       try {
@@ -1989,6 +2750,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
       ];
       const blockFocus = inferBlockFocus(block.name, params.theme);
       const focusText = blockFocus ? focusLabel(blockFocus) : params.theme;
+      const blockFormat = inferBlockValueFormat(block, params.workFormat === "time" ? "time" : "reps");
       const neighborPatterns = [];
       if (ei > 0) neighborPatterns.push(detectPattern(block.exercises[ei - 1].name, block.exercises[ei - 1].note || ""));
       if (ei < block.exercises.length - 1) neighborPatterns.push(detectPattern(block.exercises[ei + 1].name, block.exercises[ei + 1].note || ""));
@@ -1997,6 +2759,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
       const userPrompt = `Тема тренування: "${params.theme}", рівень: ${params.level}, обладнання: ${eqStr}.
 Заміни вправу "${oldEx.name}" у блоці "${block.name}".
 Бажано (не обов'язково) тримати той самий загальний фокус блоку: ${focusText}.
+Формат цього блоку — ${blockFormat === "time" ? `НА ЧАС: поле "reps" має бути "${WORK_TIME_SECONDS} сек"` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.
 ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в цьому блоці вже мають тип руху "${neighborPatternLabels.join(', ')}" — нова вправа НЕ повинна бути того ж типу (щоб не було двох однакових рухів поспіль, наприклад двох присідів).` : ""}
 Вже використані вправи, не повторювати: ${usedNames.join(", ")}
 Поверни ОДНУ вправу у форматі JSON (без пробілів): {"name":"...","sets":3,"reps":"12-15","note":"..."}`;
@@ -2004,7 +2767,7 @@ ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в
       try {
         newEx = await callClaude(SYSTEM_PROMPT, userPrompt);
       } catch {
-        newEx = localReplacement(params.theme, params.level, params.equipment, usedNames, blockFocus, neighborPatterns);
+        newEx = localReplacement(params.theme, params.level, params.equipment, usedNames, blockFocus, neighborPatterns, blockFormat);
       }
       setWorkout((w) => {
         const copy = structuredClone(w);
@@ -2058,13 +2821,73 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
     }
   }, [workout, params]);
 
+  const regenerateBlock = useCallback(async (bi) => {
+    if (!workout) return;
+    setBlockLoadingIndex(bi);
+    try {
+      const block = workout.blocks[bi];
+      const count = block.exercises.length;
+      const blockFocus = inferBlockFocus(block.name, params.theme);
+      const focusText = blockFocus ? focusLabel(blockFocus) : params.theme;
+      const blockFormat = inferBlockValueFormat(block, params.workFormat === "time" ? "time" : "reps");
+      const usedNames = [
+        ...workout.warmup.map((w) => w.name),
+        ...workout.blocks.flatMap((b, i) => (i === bi ? [] : b.exercises.map((e) => e.name))),
+        ...workout.cooldown.map((w) => w.name),
+      ];
+      const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
+      const userPrompt = `Тема тренування: "${params.theme}", рівень: ${params.level}, обладнання: ${eqStr}.
+Повністю онови блок "${block.name}" (замінити всі ${count} вправи), зберігаючи фокус: ${focusText}.
+Формат — ${blockFormat === "time" ? `НА ЧАС: поле "reps" = "${WORK_TIME_SECONDS} сек" для кожної вправи` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.
+ВАЖЛИВО: не став поруч дві вправи одного типу руху (наприклад два присіди) — чергуй типи рухів.
+Вже використані в інших блоках вправи, не повторювати: ${usedNames.join(", ")}
+Формат JSON (без пробілів): {"exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}
+Кількість вправ: ${count}.`;
+      let newExercises;
+      try {
+        const result = await callClaude(SYSTEM_PROMPT, userPrompt);
+        newExercises = result.exercises;
+      } catch {
+        const groupOnly = typeof blockFocus === "string" ? blockFocus : blockFocus?.group;
+        const focusPool = blockFocus ? filterLibraryByFocus(blockFocus, params.equipment, usedNames) : [];
+        const groupPool = groupOnly ? filterLibrary([groupOnly], params.equipment, usedNames) : [];
+        const themePool = filterLibrary(THEME_GROUPS[params.theme] || ["Full Body"], params.equipment, usedNames);
+        const chosen = pickDiverseFromPools([focusPool, groupPool, themePool], count, null);
+        newExercises = chosen.map((e) => toWorkoutExercise(e, params.level, blockFormat));
+      }
+      setWorkout((w) => {
+        const copy = structuredClone(w);
+        copy.blocks[bi].exercises = newExercises;
+        return copy;
+      });
+    } catch (e) {
+      setError("Не вдалось оновити блок.");
+    } finally {
+      setBlockLoadingIndex(null);
+    }
+  }, [workout, params]);
+
   const generateBlock = useCallback(async () => {
     setBlockLoading(true); setBlockError(null);
     try {
       const count = blockParams.blockDuration <= 8 ? 3 : blockParams.blockDuration <= 12 ? 4 : blockParams.blockDuration <= 16 ? 5 : 6;
       const eqStr = blockParams.equipment.length ? blockParams.equipment.join(", ") : "без інвентаря";
       const usedNames = workout ? workout.blocks.flatMap((b) => b.exercises.map((e) => e.name)) : [];
-      const userPrompt = `Створи блок вправ.
+      const isGames = blockParams.blockType === "Games";
+      const protocolMeta = GAMES_PROTOCOLS.find((p) => p.key === blockParams.gamesProtocol);
+      const userPrompt = isGames
+        ? `Створи ОДИН блок вправ у форматі Games, протокол ${protocolMeta.label} (${protocolMeta.desc}).
+Кількість людей: ${blockParams.people}
+Обладнання: ${eqStr}
+Рівень: ${blockParams.level}
+Кількість вправ: ${count}
+${blockParams.gamesProtocol === "AMRAP" || blockParams.gamesProtocol === "EMOM" ? 'Без сталої кількості підходів (поле "sets" не потрібне або null).' : ""}
+${blockParams.gamesProtocol === "Ladder" ? 'Для кожної вправи "reps" = "2-4-6-8-10" (без "sets").' : ""}
+${blockParams.gamesProtocol === "Pyramid" ? 'Для кожної вправи "reps" = "2-4-6-8-10-8-6-4-2" (без "sets").' : ""}
+${blockParams.gamesProtocol === "Tabata" ? 'Лише 2 вправи, "reps" = "макс" (без "sets").' : ""}
+${usedNames.length ? `Не повторювати вправи: ${usedNames.join(", ")}` : ""}
+Формат JSON (без пробілів): {"name":"Games: ${protocolMeta.label}","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}`
+        : `Створи блок вправ.
 Тип блоку: ${blockParams.blockType}
 Тривалість: ${blockParams.blockDuration} хв
 Кількість людей: ${blockParams.people}
@@ -2077,7 +2900,9 @@ ${usedNames.length ? `Не повторювати вправи: ${usedNames.join
       try {
         result = await callClaude(SYSTEM_PROMPT, userPrompt);
       } catch {
-        result = localBlock(blockParams.blockType, blockParams.level, blockParams.equipment, count, usedNames);
+        result = isGames
+          ? localGamesBlock(blockParams.gamesProtocol, blockParams.level, blockParams.equipment, count, usedNames)
+          : localBlock(blockParams.blockType, blockParams.level, blockParams.equipment, count, usedNames);
       }
       setBlock(result);
       setView("blockResult");
@@ -2087,6 +2912,45 @@ ${usedNames.length ? `Не повторювати вправи: ${usedNames.join
       setBlockLoading(false);
     }
   }, [blockParams, workout]);
+
+  const replaceBlockExercise = useCallback(async (ei) => {
+    if (!block) return;
+    setBlockReplacingIndex(ei);
+    try {
+      const oldEx = block.exercises[ei];
+      const usedNames = block.exercises.map((e) => e.name);
+      const neighborPatterns = [];
+      if (ei > 0) neighborPatterns.push(detectPattern(block.exercises[ei - 1].name, block.exercises[ei - 1].note || ""));
+      if (ei < block.exercises.length - 1) neighborPatterns.push(detectPattern(block.exercises[ei + 1].name, block.exercises[ei + 1].note || ""));
+      const neighborPatternLabels = [...new Set(neighborPatterns)].map((p) => PATTERN_LABELS_UK[p] || p);
+      const eqStr = blockParams.equipment.length ? blockParams.equipment.join(", ") : "без інвентаря";
+      const userPrompt = `Тип блоку: "${blockParams.blockType}", рівень: ${blockParams.level}, обладнання: ${eqStr}.
+Заміни вправу "${oldEx.name}" у цьому блоці.
+${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи вже мають тип руху "${neighborPatternLabels.join(', ')}" — нова вправа НЕ повинна бути того ж типу.` : ""}
+Вже використані вправи, не повторювати: ${usedNames.join(", ")}
+Поверни ОДНУ вправу у форматі JSON (без пробілів): {"name":"...","sets":3,"reps":"12-15","note":"..."}`;
+      let newEx;
+      try {
+        newEx = await callClaude(SYSTEM_PROMPT, userPrompt);
+      } catch {
+        const groups = resolveBlockTypeGroups(blockParams.blockType);
+        const pool = filterLibrary(groups, blockParams.equipment, usedNames);
+        const preferred = neighborPatterns.length ? pool.filter((e) => !neighborPatterns.includes(detectPattern(e.name, e.group))) : pool;
+        const finalPool = preferred.length ? preferred : pool;
+        const pick = finalPool[Math.floor(Math.random() * Math.max(1, finalPool.length))];
+        newEx = pick ? toWorkoutExercise(pick, blockParams.level) : { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+      }
+      setBlock((b) => {
+        const copy = structuredClone(b);
+        copy.exercises[ei] = newEx;
+        return copy;
+      });
+    } catch {
+      setBlockError("Не вдалось замінити вправу.");
+    } finally {
+      setBlockReplacingIndex(null);
+    }
+  }, [block, blockParams]);
 
   const appendBlockToWorkout = useCallback(() => {
     if (!workout || !block) return;
@@ -2148,6 +3012,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
       } catch {}
     })();
     loadSavedWorkouts();
+    loadFoldersAndWorkouts();
   }, []);
 
   const tabs = [
@@ -2187,6 +3052,58 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         <TopBar title="Збережені тренування" onBack={() => goto("home")} />
         <SavedListScreen savedWorkouts={savedWorkouts} onOpen={openSavedWorkout} onDelete={deleteSavedWorkout} />
       </>;
+    } else if (view === "myFolders") {
+      const counts = {};
+      customWorkouts.forEach((w) => { counts[w.folderId] = (counts[w.folderId] || 0) + 1; });
+      body = <>
+        <TopBar title="Мої тренування" onBack={() => goto("home")} />
+        <FoldersScreen
+          folders={folders}
+          workoutCounts={counts}
+          sortMode={folderSort}
+          setSortMode={setFolderSort}
+          onCreateFolder={createFolder}
+          onOpenFolder={(f) => { setCurrentFolder(f); goto("myFolderDetail"); }}
+        />
+      </>;
+    } else if (view === "myFolderDetail") {
+      const workoutsInFolder = customWorkouts.filter((w) => w.folderId === currentFolder?.id);
+      body = <>
+        <TopBar title={currentFolder?.name || "Папка"} onBack={() => goto("myFolders")} />
+        <FolderDetailScreen
+          folder={currentFolder}
+          workouts={workoutsInFolder}
+          sortMode={workoutSort}
+          setSortMode={setWorkoutSort}
+          onOpenWorkout={(w) => { setCurrentCustomWorkout(w); goto("myWorkoutView"); }}
+          onAddWorkout={() => { setCustomDraft(newCustomDraft(currentFolder?.id)); goto("myWorkoutForm"); }}
+        />
+      </>;
+    } else if (view === "myWorkoutForm") {
+      body = <>
+        <TopBar title={customDraft?.id ? "Редагувати тренування" : "Нове тренування"} onBack={() => goto("myFolderDetail")} />
+        {customDraft && (
+          <CustomWorkoutForm
+            draft={customDraft}
+            setDraft={setCustomDraft}
+            folders={folders}
+            onSave={saveCustomWorkout}
+          />
+        )}
+      </>;
+    } else if (view === "myWorkoutView") {
+      const folderName = folders.find((f) => f.id === currentCustomWorkout?.folderId)?.name || "";
+      body = <>
+        <TopBar title="Тренування" onBack={() => goto("myFolderDetail")} />
+        {currentCustomWorkout && (
+          <CustomWorkoutView
+            workout={currentCustomWorkout}
+            folderName={folderName}
+            onEdit={() => { setCustomDraft(currentCustomWorkout); goto("myWorkoutForm"); }}
+            onDelete={() => deleteCustomWorkout(currentCustomWorkout.id)}
+          />
+        )}
+      </>;
     } else if (view === "workoutResult") {
       body = <>
         <TopBar title="Тренування" onBack={() => goto(workoutOrigin === "saved" ? "savedList" : "home")} />
@@ -2200,6 +3117,8 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
           usedFallback={usedFallback}
           onRegenerateFinisher={regenerateFinisher}
           finisherLoading={finisherLoading}
+          onRegenerateBlock={regenerateBlock}
+          blockLoadingIndex={blockLoadingIndex}
           saveError={error}
           onNew={() => goto("create")}
           onAddBlock={() => goto("blockForm")}
@@ -2213,7 +3132,14 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
     } else if (view === "blockResult") {
       body = <>
         <TopBar title="Блок готовий" onBack={() => goto("blockForm")} />
-        <BlockResult block={block} canAppend={!!workout} onAppend={appendBlockToWorkout} onNew={() => goto("blockForm")} />
+        <BlockResult
+          block={block}
+          canAppend={!!workout}
+          onAppend={appendBlockToWorkout}
+          onNew={() => goto("blockForm")}
+          onReplace={replaceBlockExercise}
+          replacingIndex={blockReplacingIndex}
+        />
       </>;
     } else if (view === "planForm") {
       body = <>
