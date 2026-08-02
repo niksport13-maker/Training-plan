@@ -2,11 +2,12 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>AI Coach</title>
-<meta name="theme-color" content="#14171A" />
+<meta name="theme-color" content="#000000" />
 <style>
-  html, body { margin: 0; padding: 0; background: #14171A; }
+  html, body { margin: 0; padding: 0; background: #000000; touch-action: pan-x pan-y; overscroll-behavior: none; }
+  * { touch-action: manipulation; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
@@ -832,6 +833,17 @@ function inferBlockValueFormat(block, fallback = "reps") {
   return /сек/.test(withValue.reps) ? "time" : "reps";
 }
 
+// Detects "reps" values that aren't a normal number or range (e.g. "12" or
+// "12-15") — things like a ladder scheme "2-4-6-8-10", a pyramid scheme
+// "2-4-6-8-10-8-6-4-2", or Tabata's "макс". These must be preserved exactly
+// when an exercise is replaced, rather than regenerated as a plain rep range.
+function specialRepsScheme(reps) {
+  if (!reps) return null;
+  if (/сек$/.test(reps)) return null; // time-based, handled separately
+  if (/^\d+(-\d+)?$/.test(reps)) return null; // plain number or simple "12-15" range
+  return reps;
+}
+
 function equipmentPool(equipment) {
   return equipment.length ? equipment : ["Без інвентаря"];
 }
@@ -958,6 +970,13 @@ function localGamesWorkout(params, c) {
     return chosen;
   };
 
+  const pickLadderFriendly = (n) => {
+    const p = filterLadderFriendly(filterLibrary(groups, params.equipment, used));
+    const chosen = pickDiverseFromPools([p.length ? p : filterLibrary(groups, params.equipment, used)], n);
+    chosen.forEach((e) => used.push(e.name));
+    return chosen;
+  };
+
   if (protocol === "Circuit") {
     const stationCount = Math.min(4, Math.max(2, c.blocks));
     const perStation = Math.max(3, Math.round((c.blocks * c.perBlock) / stationCount));
@@ -986,7 +1005,7 @@ function localGamesWorkout(params, c) {
     blocks = [{ name: `EMOM ${mins} хв`, exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) }];
     protocolInfo = { label: "EMOM", note: `${mins} хв — щохвилини нова вправа` };
   } else if (protocol === "Ladder") {
-    const chosen = pickFormatted(3);
+    const chosen = pickLadderFriendly(3);
     blocks = [{ name: "Драбина", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10", note: e.group })) }];
     protocolInfo = { label: "Драбина", note: "Кожен раунд — більше повторень" };
   } else if (protocol === "Tabata") {
@@ -1009,14 +1028,23 @@ function localGamesWorkout(params, c) {
     }
     protocolInfo = { label: "Естафетний", note: "Команди по черзі — хто швидше пройде всі етапи" };
   } else if (protocol === "Partner") {
-    const n = Math.max(4, Math.min(6, c.blocks * c.perBlock));
-    const chosen = pickFormatted(n);
+    const roundsCount = params.duration <= 30 ? 1 : params.duration >= 50 ? 3 : 2;
+    const perRound = Math.max(3, Math.round((c.blocks * c.perBlock) / roundsCount));
     const fmt = params.workFormat === "time" ? "time" : "reps";
     const { sets, reps } = levelSetsReps(level, fmt);
-    blocks = [{ name: "Партнерський блок", exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })) }];
-    protocolInfo = { label: "Partner WOD", note: "Один виконує, другий тримає/відпочиває — тоді міняються" };
+    let lastPattern = null;
+    for (let r = 0; r < roundsCount; r++) {
+      const chosen = pickFormatted(perRound, lastPattern);
+      if (chosen.length) lastPattern = detectPattern(chosen[chosen.length - 1].name, chosen[chosen.length - 1].group);
+      blocks.push({
+        name: `Партнерський блок ${r + 1}`,
+        instructions: "Партнер А виконує вправу, поки партнер Б тримає планку (чи інше статичне утримання) або відпочиває. По завершенню підходу — міняються ролями.",
+        exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })),
+      });
+    }
+    protocolInfo = { label: "Partner WOD", note: "Один виконує — другий тримає/відпочиває, тоді міняються" };
   } else {
-    const chosen = pickFormatted(3);
+    const chosen = pickLadderFriendly(3);
     blocks = [{ name: "Піраміда", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10-8-6-4-2", note: e.group })) }];
     protocolInfo = { label: "Пірамідальний", note: "Повторення зростають, тоді спадають" };
   }
@@ -1077,8 +1105,10 @@ function localBlock(blockType, level, equipment, count, usedNames) {
 function localGamesBlock(protocol, level, equipment, count, usedNames) {
   const groups = THEME_GROUPS["Games"];
   const pool = filterLibrary(groups, equipment, usedNames);
+  const ladderPool = filterLadderFriendly(pool);
   const repsBase = level === "Просунутий" ? 15 : level === "Початковий" ? 10 : 12;
   const pick = (n) => pickDiverseFromPools([pool], n);
+  const pickLadder = (n) => pickDiverseFromPools([ladderPool.length ? ladderPool : pool], n);
 
   if (protocol === "AMRAP") {
     const chosen = pick(count);
@@ -1089,7 +1119,7 @@ function localGamesBlock(protocol, level, equipment, count, usedNames) {
     return { name: "Games: EMOM", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: `${repsBase}`, note: e.group })) };
   }
   if (protocol === "Ladder") {
-    const chosen = pick(Math.min(3, count));
+    const chosen = pickLadder(Math.min(3, count));
     return { name: "Games: Драбина", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10", note: e.group })) };
   }
   if (protocol === "Tabata") {
@@ -1097,13 +1127,17 @@ function localGamesBlock(protocol, level, equipment, count, usedNames) {
     return { name: "Games: Табата", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "макс", note: e.group })) };
   }
   if (protocol === "Pyramid") {
-    const chosen = pick(Math.min(3, count));
+    const chosen = pickLadder(Math.min(3, count));
     return { name: "Games: Піраміда", exercises: chosen.map((e) => ({ name: e.name, sets: null, reps: "2-4-6-8-10-8-6-4-2", note: e.group })) };
   }
   if (protocol === "Partner") {
     const chosen = pick(count);
     const { sets, reps } = levelSetsReps(level, "reps");
-    return { name: "Games: Партнерський блок", exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })) };
+    return {
+      name: "Games: Партнерський блок",
+      instructions: "Партнер А виконує вправу, поки партнер Б тримає планку (чи інше статичне утримання) або відпочиває. По завершенню підходу — міняються ролями.",
+      exercises: chosen.map((e) => ({ name: e.name, sets, reps, note: e.group })),
+    };
   }
   if (protocol === "Relay") {
     const chosen = pick(count);
@@ -1272,6 +1306,19 @@ function detectPattern(name, group) {
   return "full";
 }
 
+// Ladder/Pyramid rep schemes ("2-4-6-8-10") only make sense for simple,
+// quickly-countable movements. Excludes distance/time-based cardio (rowing,
+// bike, sprints, carries/walks) and multi-movement combos, which can't be
+// meaningfully counted "2 reps, then 4, then 6...".
+function filterLadderFriendly(pool) {
+  return pool.filter((e) => {
+    const p = detectPattern(e.name, e.group);
+    if (p === "plyo" || p === "carry" || p === "stretch") return false;
+    if (/комплекс|хода|спринт|прискорення|гребля|байк|канат|драбинк/i.test(e.name)) return false;
+    return true;
+  });
+}
+
 function localTechnique(ex) {
   const pattern = detectPattern(ex.name, ex.group);
   return PATTERN_TECHNIQUES[pattern] || PATTERN_TECHNIQUES.full;
@@ -1357,6 +1404,56 @@ async function storageGet(key, shared = false) {
   } catch {
     return null;
   }
+}
+
+/* ------------------------------- backup (export/import) --------------------- */
+
+const BACKUP_KEYS = ["saved-workouts", "custom-folders", "custom-workouts", "month-plan"];
+
+async function exportAllData() {
+  const data = {};
+  for (const key of BACKUP_KEYS) {
+    try {
+      const res = await storageGet(key, false);
+      if (res?.value) data[key] = res.value;
+    } catch {}
+  }
+  const payload = { exportedAt: new Date().toISOString(), version: 1, app: "ai-coach", data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ai-coach-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function importAllData(file) {
+  const text = await file.text();
+  const payload = JSON.parse(text);
+  const data = payload?.data || payload;
+  let restored = 0;
+  for (const key of BACKUP_KEYS) {
+    if (data?.[key]) {
+      await storageSet(key, data[key], false);
+      restored++;
+    }
+  }
+  if (restored === 0) throw new Error("У файлі не знайдено відомих даних застосунку.");
+  return restored;
+}
+
+function triggerImportPicker(onFile) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) onFile(file);
+  };
+  input.click();
 }
 
 /* ------------------------------- API helper -------------------------------- */
@@ -1553,12 +1650,12 @@ function BigButton({ onClick, children, disabled, variant = "primary" }) {
 
 /* --------------------------------- Home ------------------------------------ */
 
-function HomeScreen({ goto }) {
+function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy }) {
   const cards = [
     { key: "create", title: "Створити тренування", desc: "Повний план під параметри групи", icon: Dumbbell },
     { key: "blockForm", title: "Створити блок", desc: "Силовий, кардіо, TRX, прес, сідниці…", icon: Target },
-    { key: "planForm", title: "План на місяць", desc: "Ротація тем без повторів", icon: CalendarDays },
     { key: "myFolders", title: "Мої тренування", desc: "Власні записи по папках", icon: Folder },
+    { key: "planForm", title: "План на місяць", desc: "Ротація тем без повторів", icon: CalendarDays },
     { key: "savedList", title: "Збережені тренування", desc: "Раніше згенеровані плани", icon: Save },
     { key: "library", title: "Бібліотека вправ", desc: "Фільтри за м'язами й інвентарем", icon: LibraryIcon },
   ];
@@ -1600,6 +1697,36 @@ function HomeScreen({ goto }) {
             <ChevronRight size={18} color="#5C6268" />
           </button>
         ))}
+      </div>
+
+      <div style={{ marginTop: 26, paddingTop: 20, borderTop: "1px solid #262B30" }}>
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 10 }}>
+          Резервне копіювання
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={onExport}
+            disabled={backupBusy}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "12px 10px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
+          >
+            <Save size={15} color="#C6F135" /> Експорт
+          </button>
+          <button
+            onClick={onImport}
+            disabled={backupBusy}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#1D2125", border: "1px solid #262B30", borderRadius: 12, padding: "12px 10px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
+          >
+            <RefreshCw size={15} color="#4FA8E0" /> Імпорт
+          </button>
+        </div>
+        {backupMessage && (
+          <div style={{ marginTop: 10, fontFamily: "'Inter',sans-serif", fontSize: 12, color: backupMessage.type === "error" ? "#FF6B57" : "#7FD1B9" }}>
+            {backupMessage.type === "error" ? "⚠ " : "✓ "}{backupMessage.text}
+          </div>
+        )}
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268", marginTop: 8, lineHeight: 1.5 }}>
+          Експорт зберігає всі твої дані (тренування, папки, план) в один файл — тримай його в надійному місці й онови час від часу.
+        </div>
       </div>
     </div>
   );
@@ -1852,6 +1979,11 @@ function WorkoutResult({ workout, params, onReplace, replacingKey, onSave, onNew
               <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, color: "#C7CCD1" }}>Блок</span>
             </button>
           </div>
+          {block.instructions && (
+            <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8FC6F0", marginBottom: 10, lineHeight: 1.5 }}>
+              ℹ️ {block.instructions}
+            </div>
+          )}
           {block.exercises?.map((ex, ei) => {
             const rowId = `${bi}-${ei}`;
             return (
@@ -1972,6 +2104,11 @@ function BlockResult({ block, onNew, onAppend, canAppend, onReplace, replacingIn
   return (
     <div style={{ padding: "8px 20px 40px" }}>
       <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: "#F3F4F1", margin: 0 }}>{block.name}</h2>
+      {block.instructions && (
+        <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: "#8FC6F0", marginTop: 8, marginBottom: 4, lineHeight: 1.5 }}>
+          ℹ️ {block.instructions}
+        </div>
+      )}
       {block.exercises?.map((ex, i) => (
         <ExerciseRow
           key={i}
@@ -2131,7 +2268,7 @@ function FoldersScreen({ folders, workoutCounts, sortMode, setSortMode, onOpenFo
   return (
     <div style={{ padding: "8px 20px 40px" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>↕ За назвою</Chip>
+        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>За назвою</Chip>
         <Chip active={sortMode === "date"} onClick={() => setSortMode("date")}>За датою</Chip>
       </div>
 
@@ -2175,7 +2312,7 @@ function FoldersScreen({ folders, workoutCounts, sortMode, setSortMode, onOpenFo
       ) : (
         <button
           onClick={() => setAdding(true)}
-          style={{ width: "100%", border: "1px dashed #3a4046", borderRadius: 14, padding: 14, textAlign: "center", color: "#8D949B", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
+          style={{ width: "100%", background: "#1D2125", border: "1px solid #C6F135", borderRadius: 14, padding: 14, textAlign: "center", color: "#C6F135", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
         >
           + Нова папка
         </button>
@@ -2192,7 +2329,7 @@ function FolderDetailScreen({ folder, workouts, sortMode, setSortMode, onOpenWor
   return (
     <div style={{ padding: "8px 20px 40px" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>↕ За назвою</Chip>
+        <Chip active={sortMode === "name"} onClick={() => setSortMode("name")}>За назвою</Chip>
         <Chip active={sortMode === "date"} onClick={() => setSortMode("date")}>За датою</Chip>
       </div>
 
@@ -2225,7 +2362,7 @@ function FolderDetailScreen({ folder, workouts, sortMode, setSortMode, onOpenWor
 
       <button
         onClick={onAddWorkout}
-        style={{ width: "100%", border: "1px dashed #3a4046", borderRadius: 14, padding: 14, textAlign: "center", color: "#C6F135", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13, marginTop: 4 }}
+        style={{ width: "100%", background: "#1D2125", border: "1px dashed #3a4046", borderRadius: 14, padding: 14, textAlign: "center", color: "#C6F135", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13, marginTop: 4 }}
       >
         + Додати тренування
       </button>
@@ -2375,12 +2512,12 @@ function CustomWorkoutForm({ draft, setDraft, folders, onSave, onCancel }) {
                   </div>
                 </div>
               ))}
-              <button onClick={() => addExercise(bi)} style={{ width: "100%", fontSize: 12, color: "#8D949B", border: "1px dashed #3a4046", borderRadius: 8, padding: 7 }}>
+              <button onClick={() => addExercise(bi)} style={{ width: "100%", fontSize: 12, color: "#8D949B", background: "#1D2125", border: "1px dashed #3a4046", borderRadius: 8, padding: 7 }}>
                 + {block.format === "rounds" ? "Вправа в коло" : "Вправа"}
               </button>
             </div>
           ))}
-          <button onClick={addBlock} style={{ width: "100%", fontSize: 13, fontWeight: 700, color: "#C6F135", border: "1px dashed #3a404680", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <button onClick={addBlock} style={{ width: "100%", fontSize: 13, fontWeight: 700, color: "#C6F135", background: "#1D2125", border: "1px dashed #3a404680", borderRadius: 12, padding: 12, marginBottom: 12 }}>
             + Додати блок
           </button>
         </>
@@ -2627,6 +2764,46 @@ function App() {
     } catch { setCustomWorkouts([]); }
   }, []);
 
+  const [backupMessage, setBackupMessage] = useState(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+
+  const loadMonthPlan = useCallback(async () => {
+    try {
+      const existing = await storageGet("month-plan", false);
+      if (existing?.value) {
+        const parsed = JSON.parse(existing.value);
+        setPlan(parsed);
+      }
+    } catch {}
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    setBackupBusy(true); setBackupMessage(null);
+    try {
+      await exportAllData();
+      setBackupMessage({ type: "ok", text: "Файл резервної копії завантажено." });
+    } catch {
+      setBackupMessage({ type: "error", text: "Не вдалось експортувати дані." });
+    } finally {
+      setBackupBusy(false);
+    }
+  }, []);
+
+  const handleImport = useCallback(() => {
+    triggerImportPicker(async (file) => {
+      setBackupBusy(true); setBackupMessage(null);
+      try {
+        await importAllData(file);
+        await Promise.all([loadSavedWorkouts(), loadFoldersAndWorkouts(), loadMonthPlan()]);
+        setBackupMessage({ type: "ok", text: "Дані відновлено з резервної копії." });
+      } catch (e) {
+        setBackupMessage({ type: "error", text: e.message || "Не вдалось імпортувати файл." });
+      } finally {
+        setBackupBusy(false);
+      }
+    });
+  }, [loadSavedWorkouts, loadFoldersAndWorkouts, loadMonthPlan]);
+
   const createFolder = useCallback(async (name) => {
     const folder = { id: `f${Date.now()}`, name, createdAt: new Date().toISOString() };
     const next = [...folders, folder];
@@ -2680,14 +2857,15 @@ function App() {
       const gamesLine = !isGames ? "" : (() => {
         const proto = params.gamesProtocol;
         const totalEx = c.blocks * c.perBlock;
+        const partnerRounds = params.duration <= 30 ? 1 : params.duration >= 50 ? 3 : 2;
         if (proto === "Circuit") return `Тема Games, протокол Circuit (${protocolMeta.desc}): зроби 2-4 станції ("Станція N"), кожна з кількома вправами. Додай у "title" згадку про кількість кіл (2-4 залежно від тривалості), які потрібно пройти по всіх станціях підряд.`;
         if (proto === "AMRAP") return `Тема Games, протокол AMRAP (${protocolMeta.desc}): ОДИН блок "AMRAP-коло" з ${Math.min(6, Math.max(4, totalEx))} вправами без сталої кількості підходів (поле "sets" не потрібне або null) — команда виконує коло за колом, поки не мине ліміт часу.`;
         if (proto === "EMOM") return `Тема Games, протокол EMOM (${protocolMeta.desc}): ОДИН блок "EMOM N хв" з вправами, що виконуються по одній щохвилини по черзі (без "sets").`;
-        if (proto === "Ladder") return `Тема Games, протокол Драбина (${protocolMeta.desc}): ОДИН блок "Драбина" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10" (без "sets").`;
+        if (proto === "Ladder") return `Тема Games, протокол Драбина (${protocolMeta.desc}): ОДИН блок "Драбина" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10" (без "sets"). Обирай ЛИШЕ прості вправи на підрахунок повторень (присід, віджимання, випад, скручування) — НЕ вправи на дистанцію/час/складні комплекси (без бігу, спринтів, човгання, гребного тренажера, комплексів типу "гребля-присід-жим").`;
         if (proto === "Tabata") return `Тема Games, протокол Табата (${protocolMeta.desc}): 1-3 блоки "Табата N", кожен з 2 вправами, для кожної "reps" = "макс" (без "sets").`;
         if (proto === "Relay") return `Тема Games, протокол Естафетний (${protocolMeta.desc}): 2-4 блоки "Естафета N" — команди по черзі проходять кожну станцію наввипередки, опиши елемент змагання в назвах.`;
-        if (proto === "Partner") return `Тема Games, протокол Partner WOD (${protocolMeta.desc}): ОДИН блок "Партнерський блок" з 4-6 вправами, де один партнер виконує вправу, поки другий тримає статичну позу чи відпочиває, потім міняються місцями.`;
-        return `Тема Games, протокол Пірамідальний (${protocolMeta.desc}): ОДИН блок "Піраміда" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10-8-6-4-2" (без "sets").`;
+        if (proto === "Partner") return `Тема Games, протокол Partner WOD (${protocolMeta.desc}): зроби ${partnerRounds} блок(и) "Партнерський блок N" (кількість залежить від тривалості — не завжди один блок на всю сесію). У кожному блоці заповни поле "instructions" явним поясненням ролі другого партнера, наприклад: "Партнер А виконує вправу, партнер Б у цей час тримає планку/статичну позу або відпочиває — по завершенню підходу міняються ролями." Вкажи це чітко, а не залишай без пояснення.`;
+        return `Тема Games, протокол Пірамідальний (${protocolMeta.desc}): ОДИН блок "Піраміда" з 2-3 вправами, для кожної "reps" = "2-4-6-8-10-8-6-4-2" (без "sets"). Обирай ЛИШЕ прості вправи на підрахунок повторень — НЕ вправи на дистанцію/час/складні комплекси.`;
       })();
       const userPrompt = `Склади групове тренування.
 Тривалість: ${params.duration} хв
@@ -2700,8 +2878,9 @@ ${gamesLine}
 
 ${isGames ? "" : `Орієнтовний акцент по блоках (можна відхилятись, це не жорстка вимога):\n${focusLines}\n`}Розминка — ${c.warmup} вправи, заминка — ${c.cooldown} вправи.
 ВАЖЛИВО: ніколи не став поруч (в межах одного блоку чи на стику блоків) дві вправи одного типу руху — наприклад два присіди, два жими лежачи, дві планки поспіль. Чергуй типи рухів (присід / тазостегновий нахил / жим / тяга / кор / вибухові) для різноманітності. Якщо в межах акценту блоку бракує різних типів рухів — краще взяти вправу із суміжної м'язової групи цієї ж теми, ніж повторити той самий тип руху.
-${isGames ? "" : 'Назви блоків формату "Блок N: <акцент як вказано вище>".\n'}Формат JSON (без пробілів, лише ці поля):
-{"title":"...","warmup":[{"name":"...","dur":"60 сек"}],"blocks":[{"name":"Блок 1: ...","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}],"cooldown":[{"name":"...","dur":"60 сек"}]}`;
+${isGames ? "" : 'Назви блоків формату "Блок N: <акцент як вказано вище>".\n'}Поле "instructions" в блоці необов'язкове — заповнюй його лише коли формат потребує пояснення механіки (наприклад Partner WOD, Relay), інакше не додавай.
+Формат JSON (без пробілів, лише ці поля):
+{"title":"...","warmup":[{"name":"...","dur":"60 сек"}],"blocks":[{"name":"Блок 1: ...","instructions":"(опційно)","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}],"cooldown":[{"name":"...","dur":"60 сек"}]}`;
       let result, fallback = false;
       try {
         result = await callClaude(SYSTEM_PROMPT, userPrompt);
@@ -2743,6 +2922,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
     try {
       const block = workout.blocks[bi];
       const oldEx = block.exercises[ei];
+      const scheme = specialRepsScheme(oldEx.reps);
       const usedNames = [
         ...workout.warmup.map((w) => w.name),
         ...workout.blocks.flatMap((b) => b.exercises.map((e) => e.name)),
@@ -2759,7 +2939,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
       const userPrompt = `Тема тренування: "${params.theme}", рівень: ${params.level}, обладнання: ${eqStr}.
 Заміни вправу "${oldEx.name}" у блоці "${block.name}".
 Бажано (не обов'язково) тримати той самий загальний фокус блоку: ${focusText}.
-Формат цього блоку — ${blockFormat === "time" ? `НА ЧАС: поле "reps" має бути "${WORK_TIME_SECONDS} сек"` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.
+${scheme ? `ВАЖЛИВО: цей блок має спеціальну схему повторень "${scheme}" — заповни "reps" ТОЧНО цим значенням (не заповнюй "sets"), і обери просту вправу на підрахунок повторень (присід/віджимання/випад/скручування) — НЕ вправу на дистанцію, час чи складний комплекс (без бігу, спринтів, човгання, комплексів типу "гребля-присід-жим").` : `Формат цього блоку — ${blockFormat === "time" ? `НА ЧАС: поле "reps" має бути "${WORK_TIME_SECONDS} сек"` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.`}
 ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в цьому блоці вже мають тип руху "${neighborPatternLabels.join(', ')}" — нова вправа НЕ повинна бути того ж типу (щоб не було двох однакових рухів поспіль, наприклад двох присідів).` : ""}
 Вже використані вправи, не повторювати: ${usedNames.join(", ")}
 Поверни ОДНУ вправу у форматі JSON (без пробілів): {"name":"...","sets":3,"reps":"12-15","note":"..."}`;
@@ -2767,7 +2947,17 @@ ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в
       try {
         newEx = await callClaude(SYSTEM_PROMPT, userPrompt);
       } catch {
-        newEx = localReplacement(params.theme, params.level, params.equipment, usedNames, blockFocus, neighborPatterns, blockFormat);
+        if (scheme) {
+          const groups = THEME_GROUPS[params.theme] || ["Full Body"];
+          const pool = filterLadderFriendly(filterLibrary(groups, params.equipment, usedNames));
+          const pick = pool[Math.floor(Math.random() * Math.max(1, pool.length))];
+          newEx = pick ? { name: pick.name, sets: null, reps: scheme, note: pick.group } : { ...oldEx };
+        } else {
+          newEx = localReplacement(params.theme, params.level, params.equipment, usedNames, blockFocus, neighborPatterns, blockFormat);
+        }
+      }
+      if (scheme) {
+        newEx = { ...newEx, reps: scheme, sets: null };
       }
       setWorkout((w) => {
         const copy = structuredClone(w);
@@ -2830,6 +3020,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
       const blockFocus = inferBlockFocus(block.name, params.theme);
       const focusText = blockFocus ? focusLabel(blockFocus) : params.theme;
       const blockFormat = inferBlockValueFormat(block, params.workFormat === "time" ? "time" : "reps");
+      const scheme = specialRepsScheme(block.exercises[0]?.reps);
       const usedNames = [
         ...workout.warmup.map((w) => w.name),
         ...workout.blocks.flatMap((b, i) => (i === bi ? [] : b.exercises.map((e) => e.name))),
@@ -2838,7 +3029,7 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
       const eqStr = params.equipment.length ? params.equipment.join(", ") : "без інвентаря";
       const userPrompt = `Тема тренування: "${params.theme}", рівень: ${params.level}, обладнання: ${eqStr}.
 Повністю онови блок "${block.name}" (замінити всі ${count} вправи), зберігаючи фокус: ${focusText}.
-Формат — ${blockFormat === "time" ? `НА ЧАС: поле "reps" = "${WORK_TIME_SECONDS} сек" для кожної вправи` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.
+${scheme ? `ВАЖЛИВО: цей блок має спеціальну схему повторень "${scheme}" — заповни "reps" ТОЧНО цим значенням для КОЖНОЇ вправи (не заповнюй "sets"), і обирай лише прості вправи на підрахунок повторень (присід/віджимання/випад/скручування) — НЕ вправи на дистанцію, час чи складні комплекси.` : `Формат — ${blockFormat === "time" ? `НА ЧАС: поле "reps" = "${WORK_TIME_SECONDS} сек" для кожної вправи` : "на повторення: поле \"reps\" — діапазон типу \"12-15\""}.`}
 ВАЖЛИВО: не став поруч дві вправи одного типу руху (наприклад два присіди) — чергуй типи рухів.
 Вже використані в інших блоках вправи, не повторювати: ${usedNames.join(", ")}
 Формат JSON (без пробілів): {"exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}
@@ -2848,12 +3039,22 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
         const result = await callClaude(SYSTEM_PROMPT, userPrompt);
         newExercises = result.exercises;
       } catch {
-        const groupOnly = typeof blockFocus === "string" ? blockFocus : blockFocus?.group;
-        const focusPool = blockFocus ? filterLibraryByFocus(blockFocus, params.equipment, usedNames) : [];
-        const groupPool = groupOnly ? filterLibrary([groupOnly], params.equipment, usedNames) : [];
-        const themePool = filterLibrary(THEME_GROUPS[params.theme] || ["Full Body"], params.equipment, usedNames);
-        const chosen = pickDiverseFromPools([focusPool, groupPool, themePool], count, null);
-        newExercises = chosen.map((e) => toWorkoutExercise(e, params.level, blockFormat));
+        if (scheme) {
+          const themeGroups = THEME_GROUPS[params.theme] || ["Full Body"];
+          const ladderPool = filterLadderFriendly(filterLibrary(themeGroups, params.equipment, usedNames));
+          const chosen = pickDiverseFromPools([ladderPool.length ? ladderPool : filterLibrary(themeGroups, params.equipment, usedNames)], count, null);
+          newExercises = chosen.map((e) => ({ name: e.name, sets: null, reps: scheme, note: e.group }));
+        } else {
+          const groupOnly = typeof blockFocus === "string" ? blockFocus : blockFocus?.group;
+          const focusPool = blockFocus ? filterLibraryByFocus(blockFocus, params.equipment, usedNames) : [];
+          const groupPool = groupOnly ? filterLibrary([groupOnly], params.equipment, usedNames) : [];
+          const themePool = filterLibrary(THEME_GROUPS[params.theme] || ["Full Body"], params.equipment, usedNames);
+          const chosen = pickDiverseFromPools([focusPool, groupPool, themePool], count, null);
+          newExercises = chosen.map((e) => toWorkoutExercise(e, params.level, blockFormat));
+        }
+      }
+      if (scheme) {
+        newExercises = newExercises.map((e) => ({ ...e, reps: scheme, sets: null }));
       }
       setWorkout((w) => {
         const copy = structuredClone(w);
@@ -2882,8 +3083,8 @@ ${(params.finisher === "EMOM" || params.finisher === "AMRAP") ? `Тривалі�
 Рівень: ${blockParams.level}
 Кількість вправ: ${count}
 ${blockParams.gamesProtocol === "AMRAP" || blockParams.gamesProtocol === "EMOM" ? 'Без сталої кількості підходів (поле "sets" не потрібне або null).' : ""}
-${blockParams.gamesProtocol === "Ladder" ? 'Для кожної вправи "reps" = "2-4-6-8-10" (без "sets").' : ""}
-${blockParams.gamesProtocol === "Pyramid" ? 'Для кожної вправи "reps" = "2-4-6-8-10-8-6-4-2" (без "sets").' : ""}
+${blockParams.gamesProtocol === "Ladder" ? 'Для кожної вправи "reps" = "2-4-6-8-10" (без "sets"). Обирай ЛИШЕ прості вправи на підрахунок повторень (присід, віджимання, випад, скручування) — НЕ вправи на дистанцію/час/складні комплекси.' : ""}
+${blockParams.gamesProtocol === "Pyramid" ? 'Для кожної вправи "reps" = "2-4-6-8-10-8-6-4-2" (без "sets"). Обирай ЛИШЕ прості вправи на підрахунок повторень — НЕ вправи на дистанцію/час/складні комплекси.' : ""}
 ${blockParams.gamesProtocol === "Tabata" ? 'Лише 2 вправи, "reps" = "макс" (без "sets").' : ""}
 ${usedNames.length ? `Не повторювати вправи: ${usedNames.join(", ")}` : ""}
 Формат JSON (без пробілів): {"name":"Games: ${protocolMeta.label}","exercises":[{"name":"...","sets":3,"reps":"12-15","note":"..."}]}`
@@ -2918,6 +3119,7 @@ ${usedNames.length ? `Не повторювати вправи: ${usedNames.join
     setBlockReplacingIndex(ei);
     try {
       const oldEx = block.exercises[ei];
+      const scheme = specialRepsScheme(oldEx.reps);
       const usedNames = block.exercises.map((e) => e.name);
       const neighborPatterns = [];
       if (ei > 0) neighborPatterns.push(detectPattern(block.exercises[ei - 1].name, block.exercises[ei - 1].note || ""));
@@ -2926,6 +3128,7 @@ ${usedNames.length ? `Не повторювати вправи: ${usedNames.join
       const eqStr = blockParams.equipment.length ? blockParams.equipment.join(", ") : "без інвентаря";
       const userPrompt = `Тип блоку: "${blockParams.blockType}", рівень: ${blockParams.level}, обладнання: ${eqStr}.
 Заміни вправу "${oldEx.name}" у цьому блоці.
+${scheme ? `ВАЖЛИВО: цей блок має спеціальну схему повторень "${scheme}" — заповни "reps" ТОЧНО цим значенням (не заповнюй "sets"), і обери просту вправу на підрахунок повторень — НЕ вправу на дистанцію, час чи складний комплекс.` : ""}
 ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи вже мають тип руху "${neighborPatternLabels.join(', ')}" — нова вправа НЕ повинна бути того ж типу.` : ""}
 Вже використані вправи, не повторювати: ${usedNames.join(", ")}
 Поверни ОДНУ вправу у форматі JSON (без пробілів): {"name":"...","sets":3,"reps":"12-15","note":"..."}`;
@@ -2934,11 +3137,17 @@ ${neighborPatternLabels.length ? `ВАЖЛИВО: сусідні вправи в
         newEx = await callClaude(SYSTEM_PROMPT, userPrompt);
       } catch {
         const groups = resolveBlockTypeGroups(blockParams.blockType);
-        const pool = filterLibrary(groups, blockParams.equipment, usedNames);
+        const basePool = filterLibrary(groups, blockParams.equipment, usedNames);
+        const pool = scheme ? filterLadderFriendly(basePool) : basePool;
         const preferred = neighborPatterns.length ? pool.filter((e) => !neighborPatterns.includes(detectPattern(e.name, e.group))) : pool;
-        const finalPool = preferred.length ? preferred : pool;
+        const finalPool = preferred.length ? preferred : (pool.length ? pool : basePool);
         const pick = finalPool[Math.floor(Math.random() * Math.max(1, finalPool.length))];
-        newEx = pick ? toWorkoutExercise(pick, blockParams.level) : { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+        newEx = pick
+          ? (scheme ? { name: pick.name, sets: null, reps: scheme, note: pick.group } : toWorkoutExercise(pick, blockParams.level))
+          : { name: "Планка класична", sets: 3, reps: "45 сек", note: "Прес" };
+      }
+      if (scheme) {
+        newEx = { ...newEx, reps: scheme, sets: null };
       }
       setBlock((b) => {
         const copy = structuredClone(b);
@@ -3002,17 +3211,28 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   }, [planParams]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const existing = await storageGet("month-plan", false);
-        if (existing?.value) {
-          const parsed = JSON.parse(existing.value);
-          setPlan(parsed);
-        }
-      } catch {}
-    })();
+    loadMonthPlan();
     loadSavedWorkouts();
     loadFoldersAndWorkouts();
+  }, []);
+
+  // Prevent pinch-zoom and double-tap-zoom so the app feels like a native
+  // fixed-scale mobile screen rather than a zoomable web page.
+  useEffect(() => {
+    const preventPinch = (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
+    let lastTouchEnd = 0;
+    const preventDoubleTapZoom = (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    };
+    document.addEventListener("touchmove", preventPinch, { passive: false });
+    document.addEventListener("touchend", preventDoubleTapZoom, { passive: false });
+    document.addEventListener("gesturestart", (e) => e.preventDefault());
+    return () => {
+      document.removeEventListener("touchmove", preventPinch);
+      document.removeEventListener("touchend", preventDoubleTapZoom);
+    };
   }, []);
 
   const tabs = [
@@ -3022,6 +3242,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   ];
 
   let body;
+  let backAction = null;
   if (tab === "library") {
     body = <LibraryTab />;
   } else if (tab === "plan") {
@@ -3041,22 +3262,25 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   } else {
     // coach tab
     if (view === "home") {
-      body = <HomeScreen goto={goto} />;
+      body = <HomeScreen goto={goto} onExport={handleExport} onImport={handleImport} backupMessage={backupMessage} backupBusy={backupBusy} />;
     } else if (view === "create") {
+      backAction = () => goto("home");
       body = <>
-        <TopBar title="Створити тренування" onBack={() => goto("home")} />
+        <TopBar title="Створити тренування" onBack={backAction} />
         <ParamsForm params={params} setParams={setParams} onSubmit={generateWorkout} loading={loading} error={error} submitLabel="Згенерувати" />
       </>;
     } else if (view === "savedList") {
+      backAction = () => goto("home");
       body = <>
-        <TopBar title="Збережені тренування" onBack={() => goto("home")} />
+        <TopBar title="Збережені тренування" onBack={backAction} />
         <SavedListScreen savedWorkouts={savedWorkouts} onOpen={openSavedWorkout} onDelete={deleteSavedWorkout} />
       </>;
     } else if (view === "myFolders") {
       const counts = {};
       customWorkouts.forEach((w) => { counts[w.folderId] = (counts[w.folderId] || 0) + 1; });
+      backAction = () => goto("home");
       body = <>
-        <TopBar title="Мої тренування" onBack={() => goto("home")} />
+        <TopBar title="Мої тренування" onBack={backAction} />
         <FoldersScreen
           folders={folders}
           workoutCounts={counts}
@@ -3068,8 +3292,9 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
       </>;
     } else if (view === "myFolderDetail") {
       const workoutsInFolder = customWorkouts.filter((w) => w.folderId === currentFolder?.id);
+      backAction = () => goto("myFolders");
       body = <>
-        <TopBar title={currentFolder?.name || "Папка"} onBack={() => goto("myFolders")} />
+        <TopBar title={currentFolder?.name || "Папка"} onBack={backAction} />
         <FolderDetailScreen
           folder={currentFolder}
           workouts={workoutsInFolder}
@@ -3080,8 +3305,9 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         />
       </>;
     } else if (view === "myWorkoutForm") {
+      backAction = () => goto("myFolderDetail");
       body = <>
-        <TopBar title={customDraft?.id ? "Редагувати тренування" : "Нове тренування"} onBack={() => goto("myFolderDetail")} />
+        <TopBar title={customDraft?.id ? "Редагувати тренування" : "Нове тренування"} onBack={backAction} />
         {customDraft && (
           <CustomWorkoutForm
             draft={customDraft}
@@ -3093,8 +3319,9 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
       </>;
     } else if (view === "myWorkoutView") {
       const folderName = folders.find((f) => f.id === currentCustomWorkout?.folderId)?.name || "";
+      backAction = () => goto("myFolderDetail");
       body = <>
-        <TopBar title="Тренування" onBack={() => goto("myFolderDetail")} />
+        <TopBar title="Тренування" onBack={backAction} />
         {currentCustomWorkout && (
           <CustomWorkoutView
             workout={currentCustomWorkout}
@@ -3105,8 +3332,9 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         )}
       </>;
     } else if (view === "workoutResult") {
+      backAction = () => goto(workoutOrigin === "saved" ? "savedList" : "home");
       body = <>
-        <TopBar title="Тренування" onBack={() => goto(workoutOrigin === "saved" ? "savedList" : "home")} />
+        <TopBar title="Тренування" onBack={backAction} />
         <WorkoutResult
           workout={workout}
           params={params}
@@ -3125,13 +3353,15 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         />
       </>;
     } else if (view === "blockForm") {
+      backAction = () => goto(workout ? "workoutResult" : "home");
       body = <>
-        <TopBar title="Створити блок" onBack={() => goto(workout ? "workoutResult" : "home")} />
+        <TopBar title="Створити блок" onBack={backAction} />
         <BlockForm params={blockParams} setParams={setBlockParams} onSubmit={generateBlock} loading={blockLoading} error={blockError} />
       </>;
     } else if (view === "blockResult") {
+      backAction = () => goto("blockForm");
       body = <>
-        <TopBar title="Блок готовий" onBack={() => goto("blockForm")} />
+        <TopBar title="Блок готовий" onBack={backAction} />
         <BlockResult
           block={block}
           canAppend={!!workout}
@@ -3142,23 +3372,48 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         />
       </>;
     } else if (view === "planForm") {
+      backAction = () => goto("home");
       body = <>
-        <TopBar title="План на місяць" onBack={() => goto("home")} />
+        <TopBar title="План на місяць" onBack={backAction} />
         <PlanForm onSubmit={generatePlan} loading={planLoading} error={planError} params={planParams} setParams={setPlanParams} />
       </>;
     } else if (view === "planResult") {
+      backAction = () => goto("home");
       body = <>
-        <TopBar title="План на місяць" onBack={() => goto("home")} />
+        <TopBar title="План на місяць" onBack={backAction} />
         <PlanResult plan={plan} onNew={() => { setPlan(null); goto("planForm"); }} />
       </>;
     }
   }
 
+  const touchRef = { current: null };
+  const handleTouchStart = (e) => {
+    const t = e.touches[0];
+    touchRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  };
+  const handleTouchEnd = (e) => {
+    if (!touchRef.current || !backAction) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchRef.current.x;
+    const dy = t.clientY - touchRef.current.y;
+    const dt = Date.now() - touchRef.current.time;
+    // Swipe right, starting near the left edge, mostly horizontal, quick enough to be intentional.
+    if (touchRef.current.x < 40 && dx > 70 && Math.abs(dy) < 60 && dt < 600) {
+      backAction();
+    }
+    touchRef.current = null;
+  };
+
   return (
-    <div style={{ background: "#14171A", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 70 }}>
+    <div
+      style={{ background: "#000000", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 70 }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; touch-action: manipulation; }
+        html, body { touch-action: pan-x pan-y; overscroll-behavior: none; }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         input::placeholder { color: #5C6268; }
