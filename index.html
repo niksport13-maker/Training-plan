@@ -329,6 +329,15 @@ function Pencil(props) {
   );
 }
 
+function SettingsIcon(props) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </Icon>
+  );
+}
+
 /* ---------------------------------- data ---------------------------------- */
 
 const THEMES = ["Ноги", "Верх", "Прес", "HIIT", "Функціональне", "TRX", "Pilates", "Full Body", "Games"];
@@ -1713,14 +1722,14 @@ function BigButton({ onClick, children, disabled, variant = "primary" }) {
 
 /* --------------------------------- Home ------------------------------------ */
 
-function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, onSignOut, onGoogleSignIn }) {
+function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, onSignOut, onGoogleSignIn, noTopBorder }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   if (!enabled) return null;
 
   return (
-    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #12191F" }}>
+    <div style={noTopBorder ? {} : { marginTop: 20, paddingTop: 20, borderTop: "1px solid #12191F" }}>
       <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 10 }}>
         Хмарна синхронізація
       </div>
@@ -1795,7 +1804,7 @@ function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, on
   );
 }
 
-function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy, cloudEnabled, cloudUser, cloudBusy, cloudMessage, onCloudSignIn, onCloudSignUp, onCloudSignOut, onCloudGoogleSignIn }) {
+function HomeScreen({ goto }) {
   const cards = [
     { key: "create", title: "Створити тренування", desc: "Повний план під параметри групи", icon: Dumbbell },
     { key: "blockForm", title: "Створити блок", desc: "Силовий, кардіо, TRX, прес, сідниці…", icon: Target },
@@ -1845,8 +1854,26 @@ function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy, cloud
           </button>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <div style={{ marginTop: 26, paddingTop: 20, borderTop: "1px solid #12191F" }}>
+function SettingsScreen({ onExport, onImport, backupMessage, backupBusy, cloudEnabled, cloudUser, cloudBusy, cloudMessage, onCloudSignIn, onCloudSignUp, onCloudSignOut, onCloudGoogleSignIn }) {
+  return (
+    <div style={{ padding: "8px 20px 40px" }}>
+      <CloudAuthSection
+        enabled={cloudEnabled}
+        user={cloudUser}
+        busy={cloudBusy}
+        message={cloudMessage}
+        onSignIn={onCloudSignIn}
+        onSignUp={onCloudSignUp}
+        onSignOut={onCloudSignOut}
+        onGoogleSignIn={onCloudGoogleSignIn}
+        noTopBorder
+      />
+
+      <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #12191F" }}>
         <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 10 }}>
           Резервне копіювання
         </div>
@@ -1874,17 +1901,6 @@ function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy, cloud
         <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268", marginTop: 8, lineHeight: 1.5 }}>
           Експорт зберігає всі твої дані (тренування, папки, план) в один файл — тримай його в надійному місці й онови час від часу.
         </div>
-
-        <CloudAuthSection
-          enabled={cloudEnabled}
-          user={cloudUser}
-          busy={cloudBusy}
-          message={cloudMessage}
-          onSignIn={onCloudSignIn}
-          onSignUp={onCloudSignUp}
-          onSignOut={onCloudSignOut}
-          onGoogleSignIn={onCloudGoogleSignIn}
-        />
       </div>
     </div>
   );
@@ -3466,6 +3482,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
     { key: "coach", label: "Тренування", icon: Dumbbell },
     { key: "myFolders", label: "Мої", icon: Folder },
     { key: "library", label: "Бібліотека", icon: LibraryIcon },
+    { key: "settings", label: "Налаштування", icon: SettingsIcon },
   ];
   const MY_VIEWS = ["myFolders", "myFolderDetail", "myWorkoutForm", "myWorkoutView"];
   const activeTabKey = tab === "coach" && MY_VIEWS.includes(view) ? "myFolders" : tab;
@@ -3474,6 +3491,24 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   let backAction = null;
   if (tab === "library") {
     body = <LibraryTab />;
+  } else if (tab === "settings") {
+    body = <>
+      <TopBar title="Налаштування" />
+      <SettingsScreen
+        onExport={handleExport}
+        onImport={handleImport}
+        backupMessage={backupMessage}
+        backupBusy={backupBusy}
+        cloudEnabled={FIREBASE_ENABLED}
+        cloudUser={cloudUser}
+        cloudBusy={cloudBusy}
+        cloudMessage={cloudMessage}
+        onCloudSignIn={handleCloudSignIn}
+        onCloudSignUp={handleCloudSignUp}
+        onCloudSignOut={handleCloudSignOut}
+        onCloudGoogleSignIn={handleCloudGoogleSignIn}
+      />
+    </>;
   } else if (tab === "plan") {
     body = view === "planResult" || plan
       ? <>
@@ -3491,21 +3526,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   } else {
     // coach tab
     if (view === "home") {
-      body = <HomeScreen
-        goto={goto}
-        onExport={handleExport}
-        onImport={handleImport}
-        backupMessage={backupMessage}
-        backupBusy={backupBusy}
-        cloudEnabled={FIREBASE_ENABLED}
-        cloudUser={cloudUser}
-        cloudBusy={cloudBusy}
-        cloudMessage={cloudMessage}
-        onCloudSignIn={handleCloudSignIn}
-        onCloudSignUp={handleCloudSignUp}
-        onCloudSignOut={handleCloudSignOut}
-        onCloudGoogleSignIn={handleCloudGoogleSignIn}
-      />;
+      body = <HomeScreen goto={goto} />;
     } else if (view === "create") {
       backAction = () => goto("home");
       body = <>
