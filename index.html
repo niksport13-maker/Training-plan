@@ -3038,12 +3038,15 @@ function App() {
     setCloudBusy(true); setCloudMessage(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      // signInWithPopup is unreliable on mobile browsers and installed PWAs
-      // (popups are often silently blocked there) — redirect works everywhere.
-      await fbAuth.signInWithRedirect(provider);
-      // Page will navigate away to Google and back; nothing more to do here.
+      // signInWithRedirect relies on a cross-domain iframe to firebaseapp.com
+      // for third-party storage access, which Safari 16.1+/Chrome 115+ block
+      // when the app's own domain differs from authDomain (our case: GitHub
+      // Pages vs. firebaseapp.com) — causing auth/internal-error. Popup
+      // avoids that specific dependency, so it's the more reliable choice here.
+      await fbAuth.signInWithPopup(provider);
     } catch (e) {
       setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти через Google." });
+    } finally {
       setCloudBusy(false);
     }
   }, []);
