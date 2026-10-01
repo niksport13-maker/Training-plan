@@ -3670,7 +3670,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
 
   return (
     <div
-      style={{ background: "#05080D", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 70 }}
+      style={{ background: "#05080D", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: 70 }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -3678,6 +3678,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
         * { box-sizing: border-box; touch-action: manipulation; }
         html, body { touch-action: pan-x pan-y; overscroll-behavior: none; }
+        html { scroll-padding-top: env(safe-area-inset-top, 0px); }
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         input::placeholder { color: #5C6268; }
