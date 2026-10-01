@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>AI Coach</title>
 <meta name="theme-color" content="#05080D" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" type="image/png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="AI Coach" />
 <style>
   html, body { margin: 0; padding: 0; background: #05080D; touch-action: pan-x pan-y; overscroll-behavior: none; }
   * { touch-action: manipulation; }
@@ -12,6 +18,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div id="root"><div id="loading" style="color:#8D949B;font-family:sans-serif;padding:24px;">Завантаження…<div id="hint" style="color:#FF6B57;margin-top:8px;"></div></div></div>
@@ -1380,15 +1389,70 @@ function TechniqueDetail({ tech, exerciseName }) {
   );
 }
 
+/* ------------------------------- cloud sync (Firebase) ----------------------- */
+// Fill in your own Firebase project config below to turn on cross-device
+// cloud sync. Until FIREBASE_CONFIG.apiKey is replaced, the app works exactly
+// as before — fully local, no cloud involved, no auth screen shown.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB_mkOrZHuqZh4jemlhgiRpQAjWP26MNPk",
+  authDomain: "ai-coach-12db6.firebaseapp.com",
+  projectId: "ai-coach-12db6",
+  storageBucket: "ai-coach-12db6.firebasestorage.app",
+  messagingSenderId: "11906704080",
+  appId: "1:11906704080:web:7f75ae7c6e3574649bf4d5",
+};
+const FIREBASE_ENABLED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+
+let fbAuth = null;
+let fbDb = null;
+let currentUid = null;
+
+function initFirebase() {
+  if (!FIREBASE_ENABLED || typeof firebase === "undefined") return false;
+  if (fbAuth) return true;
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    fbDb.enablePersistence().catch(() => {});
+    fbAuth.onAuthStateChanged((u) => { currentUid = u ? u.uid : null; });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Best-effort background push — never blocks or throws into the caller.
+function pushToCloud(key, value) {
+  if (!currentUid || !fbDb) return;
+  fbDb.collection("users").doc(currentUid).collection("data").doc(key)
+    .set({ value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .catch(() => {});
+}
+
+async function pullFromCloud(keys) {
+  if (!currentUid || !fbDb) return {};
+  const result = {};
+  for (const key of keys) {
+    try {
+      const doc = await fbDb.collection("users").doc(currentUid).collection("data").doc(key).get();
+      if (doc.exists && doc.data()?.value) result[key] = doc.data().value;
+    } catch {}
+  }
+  return result;
+}
+
 /* ------------------------------- storage helper ----------------------------- */
 // This build runs as a plain static page (e.g. GitHub Pages), so it uses the
 // browser's own localStorage instead of the Claude-artifact window.storage
 // API. Function names/signatures are kept identical to the rest of the app
-// so no other code had to change.
+// so no other code had to change. Every successful set also best-effort
+// pushes to Firebase (if configured + signed in) for cross-device sync.
 
 async function storageSet(key, value, shared = false) {
   try {
     localStorage.setItem(key, value);
+    pushToCloud(key, value);
     return { key, value };
   } catch (err) {
     throw err;
@@ -1649,7 +1713,89 @@ function BigButton({ onClick, children, disabled, variant = "primary" }) {
 
 /* --------------------------------- Home ------------------------------------ */
 
-function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy }) {
+function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, onSignOut, onGoogleSignIn }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  if (!enabled) return null;
+
+  return (
+    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #12191F" }}>
+      <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: "#8D949B", textTransform: "uppercase", marginBottom: 10 }}>
+        Хмарна синхронізація
+      </div>
+      {user ? (
+        <>
+          <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 13, color: "#F3F4F1" }}>{user.email}</div>
+          <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#7FD1B9", marginTop: 4 }}>✓ Синхронізовано</div>
+          <button
+            onClick={onSignOut}
+            style={{ width: "100%", marginTop: 10, background: "#0B1118", border: "1px solid #1B2530", borderRadius: 12, padding: "12px 10px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 13 }}
+          >
+            Вийти
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            onClick={onGoogleSignIn}
+            disabled={busy}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#FFFFFF", borderRadius: 10, padding: "11px", fontWeight: 700, color: "#1F1F1F", fontFamily: "'Inter',sans-serif", fontSize: 13, marginBottom: 12 }}
+          >
+            <svg width="18" height="18" viewBox="0 0 48 48">
+              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.9 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4.5 24 4.5 12.9 4.5 4 13.4 4 24.5S12.9 44.5 24 44.5s20-8.9 20-20c0-1.4-.1-2.7-.4-4z"/>
+              <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.3 18.9 12.5 24 12.5c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/>
+              <path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 35.6 27 36.5 24 36.5c-5.4 0-9.9-3.1-11.3-7.9l-6.5 5C9.6 40 16.2 44.5 24 44.5z"/>
+              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.1-2.1 3.9-3.9 5.2l6.6 5.4C41.7 35.9 44 30.6 44 24.5c0-1.4-.1-2.7-.4-4z"/>
+            </svg>
+            Увійти через Google
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px" }}>
+            <div style={{ flex: 1, height: 1, background: "#1B2530" }} />
+            <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268" }}>або email</span>
+            <div style={{ flex: 1, height: 1, background: "#1B2530" }} />
+          </div>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            style={{ width: "100%", background: "#0B1118", border: "1px solid #1B2530", borderRadius: 10, padding: "11px 12px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 13, marginBottom: 8 }}
+          />
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            placeholder="Пароль"
+            style={{ width: "100%", background: "#0B1118", border: "1px solid #1B2530", borderRadius: 10, padding: "11px 12px", color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 13, marginBottom: 10 }}
+          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => onSignIn(email, password)}
+              disabled={busy}
+              style={{ flex: 1, background: "#34E4EA", borderRadius: 10, padding: "11px", fontWeight: 700, color: "#04181A", fontFamily: "'Inter',sans-serif", fontSize: 13 }}
+            >
+              Увійти
+            </button>
+            <button
+              onClick={() => onSignUp(email, password)}
+              disabled={busy}
+              style={{ flex: 1, background: "#0B1118", border: "1px solid #1B2530", borderRadius: 10, padding: "11px", fontWeight: 700, color: "#F3F4F1", fontFamily: "'Inter',sans-serif", fontSize: 13 }}
+            >
+              Зареєструватися
+            </button>
+          </div>
+        </>
+      )}
+      {message && (
+        <div style={{ marginTop: 10, fontFamily: "'Inter',sans-serif", fontSize: 12, color: message.type === "error" ? "#FF6B57" : "#7FD1B9" }}>
+          {message.type === "error" ? "⚠ " : ""}{message.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy, cloudEnabled, cloudUser, cloudBusy, cloudMessage, onCloudSignIn, onCloudSignUp, onCloudSignOut, onCloudGoogleSignIn }) {
   const cards = [
     { key: "create", title: "Створити тренування", desc: "Повний план під параметри групи", icon: Dumbbell },
     { key: "blockForm", title: "Створити блок", desc: "Силовий, кардіо, TRX, прес, сідниці…", icon: Target },
@@ -1728,6 +1874,17 @@ function HomeScreen({ goto, onExport, onImport, backupMessage, backupBusy }) {
         <div style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268", marginTop: 8, lineHeight: 1.5 }}>
           Експорт зберігає всі твої дані (тренування, папки, план) в один файл — тримай його в надійному місці й онови час від часу.
         </div>
+
+        <CloudAuthSection
+          enabled={cloudEnabled}
+          user={cloudUser}
+          busy={cloudBusy}
+          message={cloudMessage}
+          onSignIn={onCloudSignIn}
+          onSignUp={onCloudSignUp}
+          onSignOut={onCloudSignOut}
+          onGoogleSignIn={onCloudGoogleSignIn}
+        />
       </div>
     </div>
   );
@@ -2693,7 +2850,7 @@ const defaultPlanParams = () => ({ sessionsPerWeek: 4, themes: [...THEMES], equi
 
 function App() {
   const [tab, setTab] = useState("coach");
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("myFolders");
 
   const [params, setParams] = useState(defaultParams());
   const [workout, setWorkout] = useState(null);
@@ -2804,6 +2961,75 @@ function App() {
       }
     });
   }, [loadSavedWorkouts, loadFoldersAndWorkouts, loadMonthPlan]);
+
+  /* ----- Cloud sync (Firebase) ----- */
+  const [cloudUser, setCloudUser] = useState(null);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudMessage, setCloudMessage] = useState(null);
+
+  useEffect(() => {
+    if (!initFirebase()) return;
+    const unsub = fbAuth.onAuthStateChanged(async (u) => {
+      setCloudUser(u);
+      if (u) {
+        setCloudBusy(true);
+        try {
+          const cloudData = await pullFromCloud(BACKUP_KEYS);
+          for (const key of Object.keys(cloudData)) {
+            await storageSet(key, cloudData[key], false);
+          }
+          await Promise.all([loadSavedWorkouts(), loadFoldersAndWorkouts(), loadMonthPlan()]);
+          setCloudMessage({ type: "ok", text: "Дані синхронізовано з хмарою." });
+        } catch {
+          setCloudMessage({ type: "error", text: "Не вдалось синхронізувати дані." });
+        } finally {
+          setCloudBusy(false);
+        }
+      }
+    });
+    return () => { if (unsub) unsub(); };
+  }, []);
+
+  const handleCloudSignIn = useCallback(async (email, password) => {
+    if (!initFirebase()) { setCloudMessage({ type: "error", text: "Хмарна синхронізація ще не налаштована." }); return; }
+    setCloudBusy(true); setCloudMessage(null);
+    try {
+      await fbAuth.signInWithEmailAndPassword(email, password);
+    } catch (e) {
+      setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти." });
+    } finally {
+      setCloudBusy(false);
+    }
+  }, []);
+
+  const handleCloudSignUp = useCallback(async (email, password) => {
+    if (!initFirebase()) { setCloudMessage({ type: "error", text: "Хмарна синхронізація ще не налаштована." }); return; }
+    setCloudBusy(true); setCloudMessage(null);
+    try {
+      await fbAuth.createUserWithEmailAndPassword(email, password);
+    } catch (e) {
+      setCloudMessage({ type: "error", text: e.message || "Не вдалось зареєструватися." });
+    } finally {
+      setCloudBusy(false);
+    }
+  }, []);
+
+  const handleCloudGoogleSignIn = useCallback(async () => {
+    if (!initFirebase()) { setCloudMessage({ type: "error", text: "Хмарна синхронізація ще не налаштована." }); return; }
+    setCloudBusy(true); setCloudMessage(null);
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await fbAuth.signInWithPopup(provider);
+    } catch (e) {
+      setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти через Google." });
+    } finally {
+      setCloudBusy(false);
+    }
+  }, []);
+
+  const handleCloudSignOut = useCallback(async () => {
+    try { if (fbAuth) await fbAuth.signOut(); setCloudMessage(null); } catch {}
+  }, []);
 
   const createFolder = useCallback(async (name) => {
     const folder = { id: `f${Date.now()}`, name, createdAt: new Date().toISOString() };
@@ -3265,7 +3491,21 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
   } else {
     // coach tab
     if (view === "home") {
-      body = <HomeScreen goto={goto} onExport={handleExport} onImport={handleImport} backupMessage={backupMessage} backupBusy={backupBusy} />;
+      body = <HomeScreen
+        goto={goto}
+        onExport={handleExport}
+        onImport={handleImport}
+        backupMessage={backupMessage}
+        backupBusy={backupBusy}
+        cloudEnabled={FIREBASE_ENABLED}
+        cloudUser={cloudUser}
+        cloudBusy={cloudBusy}
+        cloudMessage={cloudMessage}
+        onCloudSignIn={handleCloudSignIn}
+        onCloudSignUp={handleCloudSignUp}
+        onCloudSignOut={handleCloudSignOut}
+        onCloudGoogleSignIn={handleCloudGoogleSignIn}
+      />;
     } else if (view === "create") {
       backAction = () => goto("home");
       body = <>
@@ -3454,6 +3694,13 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
 const rootEl = document.getElementById("root");
 ReactDOM.createRoot(rootEl).render(<App />);
 
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>
