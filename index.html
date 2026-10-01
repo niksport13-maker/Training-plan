@@ -2985,6 +2985,9 @@ function App() {
 
   useEffect(() => {
     if (!initFirebase()) return;
+    fbAuth.getRedirectResult().catch((e) => {
+      setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти через Google." });
+    });
     const unsub = fbAuth.onAuthStateChanged(async (u) => {
       setCloudUser(u);
       if (u) {
@@ -3035,10 +3038,12 @@ function App() {
     setCloudBusy(true); setCloudMessage(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      await fbAuth.signInWithPopup(provider);
+      // signInWithPopup is unreliable on mobile browsers and installed PWAs
+      // (popups are often silently blocked there) — redirect works everywhere.
+      await fbAuth.signInWithRedirect(provider);
+      // Page will navigate away to Google and back; nothing more to do here.
     } catch (e) {
       setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти через Google." });
-    } finally {
       setCloudBusy(false);
     }
   }, []);
