@@ -21,6 +21,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div id="root"><div id="loading" style="color:#8D949B;font-family:sans-serif;padding:24px;">Завантаження…<div id="hint" style="color:#FF6B57;margin-top:8px;"></div></div></div>
@@ -40,7 +41,7 @@
   }, 4000);
 </script>
 <script type="text/babel" data-presets="react">
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useCallback, useRef } = React;
 
 /* ---- self-contained icon set (replaces lucide-react for standalone hosting) ---- */
 
@@ -1412,6 +1413,13 @@ const FIREBASE_CONFIG = {
 };
 const FIREBASE_ENABLED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
 
+// Used by Google Identity Services (loaded via the gsi/client script) to get
+// an ID token directly — this bypasses Firebase's signInWithPopup/Redirect
+// entirely, which depends on a cross-domain iframe to firebaseapp.com that
+// Safari 16.1+/Chrome 115+ block when the app's own domain differs from
+// authDomain (our case, hosted on GitHub Pages).
+const GOOGLE_CLIENT_ID = "11906704080-o91gqn63kn9pfo75sjf8m1hfipf02npp.apps.googleusercontent.com";
+
 let fbAuth = null;
 let fbDb = null;
 let currentUid = null;
@@ -1722,9 +1730,33 @@ function BigButton({ onClick, children, disabled, variant = "primary" }) {
 
 /* --------------------------------- Home ------------------------------------ */
 
-function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, onSignOut, onGoogleSignIn, noTopBorder }) {
+function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, onSignOut, onGoogleCredential, noTopBorder }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const googleBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!enabled || user) return;
+    let cancelled = false;
+    let attempts = 0;
+    const tryRender = () => {
+      if (cancelled) return;
+      if (window.google?.accounts?.id && googleBtnRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response) => onGoogleCredential(response.credential),
+        });
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          type: "standard", theme: "filled_white", size: "large", text: "continue_with", shape: "rectangular", width: 320,
+        });
+        return;
+      }
+      attempts++;
+      if (attempts < 20) setTimeout(tryRender, 250); // GIS script loads async — wait for it
+    };
+    tryRender();
+    return () => { cancelled = true; };
+  }, [enabled, user, onGoogleCredential]);
 
   if (!enabled) return null;
 
@@ -1746,19 +1778,7 @@ function CloudAuthSection({ enabled, user, busy, message, onSignIn, onSignUp, on
         </>
       ) : (
         <>
-          <button
-            onClick={onGoogleSignIn}
-            disabled={busy}
-            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, background: "#FFFFFF", borderRadius: 10, padding: "11px", fontWeight: 700, color: "#1F1F1F", fontFamily: "'Inter',sans-serif", fontSize: 13, marginBottom: 12 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 48 48">
-              <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.9 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4.5 24 4.5 12.9 4.5 4 13.4 4 24.5S12.9 44.5 24 44.5s20-8.9 20-20c0-1.4-.1-2.7-.4-4z"/>
-              <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.3 18.9 12.5 24 12.5c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/>
-              <path fill="#4CAF50" d="M24 44.5c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 35.6 27 36.5 24 36.5c-5.4 0-9.9-3.1-11.3-7.9l-6.5 5C9.6 40 16.2 44.5 24 44.5z"/>
-              <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.1-2.1 3.9-3.9 5.2l6.6 5.4C41.7 35.9 44 30.6 44 24.5c0-1.4-.1-2.7-.4-4z"/>
-            </svg>
-            Увійти через Google
-          </button>
+          <div ref={googleBtnRef} style={{ display: "flex", justifyContent: "center", minHeight: 44, marginBottom: 12 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px" }}>
             <div style={{ flex: 1, height: 1, background: "#1B2530" }} />
             <span style={{ fontFamily: "'Inter',sans-serif", fontSize: 11, color: "#5C6268" }}>або email</span>
@@ -1858,7 +1878,7 @@ function HomeScreen({ goto }) {
   );
 }
 
-function SettingsScreen({ onExport, onImport, backupMessage, backupBusy, cloudEnabled, cloudUser, cloudBusy, cloudMessage, onCloudSignIn, onCloudSignUp, onCloudSignOut, onCloudGoogleSignIn }) {
+function SettingsScreen({ onExport, onImport, backupMessage, backupBusy, cloudEnabled, cloudUser, cloudBusy, cloudMessage, onCloudSignIn, onCloudSignUp, onCloudSignOut, onCloudGoogleCredential }) {
   return (
     <div style={{ padding: "8px 20px 40px" }}>
       <CloudAuthSection
@@ -1869,7 +1889,7 @@ function SettingsScreen({ onExport, onImport, backupMessage, backupBusy, cloudEn
         onSignIn={onCloudSignIn}
         onSignUp={onCloudSignUp}
         onSignOut={onCloudSignOut}
-        onGoogleSignIn={onCloudGoogleSignIn}
+        onGoogleCredential={onCloudGoogleCredential}
         noTopBorder
       />
 
@@ -3033,17 +3053,16 @@ function App() {
     }
   }, []);
 
-  const handleCloudGoogleSignIn = useCallback(async () => {
+  const handleCloudGoogleCredential = useCallback(async (idToken) => {
     if (!initFirebase()) { setCloudMessage({ type: "error", text: "Хмарна синхронізація ще не налаштована." }); return; }
     setCloudBusy(true); setCloudMessage(null);
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      // signInWithRedirect relies on a cross-domain iframe to firebaseapp.com
-      // for third-party storage access, which Safari 16.1+/Chrome 115+ block
-      // when the app's own domain differs from authDomain (our case: GitHub
-      // Pages vs. firebaseapp.com) — causing auth/internal-error. Popup
-      // avoids that specific dependency, so it's the more reliable choice here.
-      await fbAuth.signInWithPopup(provider);
+      // Exchanges the ID token straight from Google Identity Services for a
+      // Firebase credential — entirely bypasses signInWithPopup/Redirect and
+      // their dependency on the firebaseapp.com cross-domain iframe, which
+      // Safari/Chrome block when the app's domain differs from authDomain.
+      const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+      await fbAuth.signInWithCredential(credential);
     } catch (e) {
       setCloudMessage({ type: "error", text: e.message || "Не вдалось увійти через Google." });
     } finally {
@@ -3514,7 +3533,7 @@ ${usedSummary ? `Вже було в попередніх тижнях, уник�
         onCloudSignIn={handleCloudSignIn}
         onCloudSignUp={handleCloudSignUp}
         onCloudSignOut={handleCloudSignOut}
-        onCloudGoogleSignIn={handleCloudGoogleSignIn}
+        onCloudGoogleCredential={handleCloudGoogleCredential}
       />
     </>;
   } else if (tab === "plan") {
